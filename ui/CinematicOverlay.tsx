@@ -9,6 +9,7 @@ import { EARTH_FACTS, HERO, LABS, LEARN, LEARN_MONTAGE, PRECIOUS, SCIENCES, VOYA
 import { useExperience } from '@/store/useExperience';
 import { track } from '@/analytics/track';
 import { audio } from '@/audio/engine';
+import { requestTilt } from '@/rig/tilt';
 
 /** Everything 2D that sits over (or under) the canvas in the cinematic mode. */
 export function CinematicOverlay() {
@@ -54,6 +55,8 @@ export function CinematicOverlay() {
       <FactPanel beatId="voyager" data={VOYAGER} />
       <LearnMore />
       <ProgressRail />
+      <MobileProgress />
+      <UpNext />
       {loaded && <ResumePrompt />}
       <div ref={blackout} className="blackout" aria-hidden />
     </>
@@ -107,6 +110,7 @@ function OpeningVideo() {
  */
 function Gate() {
   const soundOn = () => {
+    void requestTilt();
     const st = useExperience.getState();
     if (st.muted) {
       st.setMuted(false);
@@ -428,6 +432,85 @@ function LearnMore() {
         </ul>
       </div>
     </section>
+  );
+}
+
+/**
+ * Phones: the scenes worth stopping for, in order. A label comes from the beat's
+ * caption ("Saturn", "Voyager 1") or its lab; the target is the beat's first
+ * held frame (where its panel reads best).
+ */
+const MOMENTS = BEATS.flatMap((b) => {
+  const label = b.hud?.title ?? SCIENCES.find((s) => s.id === b.id)?.lab ?? (b.id === 'learn' ? 'The labs' : null);
+  if (!label) return [];
+  const [a, z] = b.range;
+  const hold = b.camera.find((k) => k.hold)?.at ?? 0.4;
+  return [{ id: b.id, label, at: a + (z - a) * hold, start: a }];
+});
+
+/** Phones: a slim progress line and the chapter you are in, so the journey always has a shape. */
+function MobileProgress() {
+  const fill = useRef<HTMLDivElement>(null);
+  const label = useRef<HTMLSpanElement>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(
+    () =>
+      useExperience.subscribe((s) => {
+        if (fill.current) fill.current.style.transform = `scaleX(${scrollFromStory(s.progress)})`;
+        const beat = BEATS.find((b) => b.id === s.activeBeat);
+        const i = Math.max(0, CHAPTERS.findIndex((c) => c.id === beat?.chapter));
+        if (label.current) label.current.textContent = `${String(i + 1).padStart(2, '0')} / ${String(CHAPTERS.length).padStart(2, '0')} · ${CHAPTERS[i]!.label}`;
+        if (wrap.current) wrap.current.style.opacity = s.progress > 0.03 && s.progress < 0.95 ? '1' : '0';
+      }),
+    [],
+  );
+  return (
+    <div ref={wrap} className="mprogress" aria-hidden style={{ opacity: 0 }}>
+      <div className="mprogress__track">
+        <div ref={fill} className="mprogress__fill" />
+      </div>
+      <span ref={label} className="mprogress__label" />
+    </div>
+  );
+}
+
+/**
+ * Phones: pause for a moment and the next scene is named, with a tap to fly
+ * there (or let the rest play). Curiosity does the scrolling.
+ */
+function UpNext() {
+  const [next, setNext] = useState<(typeof MOMENTS)[number] | null>(null);
+  useEffect(() => {
+    let timer = 0;
+    const show = () => {
+      const st = useExperience.getState();
+      if (st.autoplay || st.progress < 0.03 || st.progress > 0.94) return setNext(null);
+      setNext(MOMENTS.find((m) => m.start > st.progress + 0.004) ?? null);
+    };
+    let last = useExperience.getState().progress;
+    const unsub = useExperience.subscribe((s) => {
+      if (Math.abs(s.progress - last) < 1e-5 && !s.autoplay) return;
+      last = s.progress;
+      setNext(null);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(show, 1700);
+    });
+    timer = window.setTimeout(show, 2500);
+    return () => {
+      unsub();
+      window.clearTimeout(timer);
+    };
+  }, []);
+  if (!next) return null;
+  return (
+    <div className="upnext" role="group" aria-label="Up next">
+      <button type="button" className="upnext__go" onClick={() => journey.scrollToProgress(next.at, { duration: 2.2 })}>
+        <span className="upnext__k">Next</span> {next.label} <i aria-hidden>↓</i>
+      </button>
+      <button type="button" className="upnext__play" aria-label="Let the rest play" onClick={() => useExperience.getState().setAutoplay(true)}>
+        ▶
+      </button>
+    </div>
   );
 }
 

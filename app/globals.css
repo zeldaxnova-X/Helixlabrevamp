@@ -1612,3 +1612,101 @@ html:is([data-mode='cinematic'], [data-mode='mobile'], [data-mode='calm']) .flat
     flex: 1;
   }
 }
+
+/* ───────────────────────── phones: progress line + up next ───────────────────────── */
+.mprogress,
+.upnext {
+  display: none;
+}
+@media (orientation: portrait) {
+  .mprogress {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 58px);
+    left: 18px;
+    right: 18px;
+    z-index: 24;
+    display: grid;
+    gap: 7px;
+    pointer-events: none;
+    transition: opacity 0.6s var(--ease);
+  }
+  .mprogress__track {
+    height: 1px;
+    background: rgba(236, 241, 255, 0.14);
+    overflow: hidden;
+  }
+  .mprogress__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue), var(--gold));
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+  .mprogress__label {
+    font: 500 9px/1 var(--sans);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  /* the scene caption sits under the progress line */
+  .hud {
+    top: calc(env(safe-area-inset-top, 0px) + 84px);
+  }
+  /* the progress line already says which chapter: the caption keeps just the scene */
+  .hud__chapter {
+    display: none;
+  }
+  /* room under the panels for the up-next chip */
+  .science,
+  .science--voyager {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+  }
+  .upnext {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    z-index: 30;
+    display: flex;
+    gap: 6px;
+    transform: translateX(-50%);
+    animation: upnext 0.7s var(--ease);
+  }
+  .upnext button {
+    border: 1px solid var(--line-2);
+    background: rgba(2, 3, 9, 0.72);
+    backdrop-filter: blur(14px);
+    color: var(--text);
+    font: 500 10px/1 var(--sans);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .upnext__go {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 18px;
+    white-space: nowrap;
+  }
+  .upnext__k {
+    color: var(--gold);
+  }
+  .upnext__go i {
+    font-style: normal;
+    animation: nudge 1.6s var(--ease) infinite;
+  }
+  .upnext__play {
+    padding: 0 15px;
+    font-size: 11px;
+  }
+}
+@keyframes upnext {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 14px);
+  }
+}
+@keyframes nudge {
+  50% {
+    transform: translateY(3px);
+  }
+}

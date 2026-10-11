@@ -36,7 +36,20 @@ export function CameraRig() {
       mouse.current.set((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
     };
     window.addEventListener('pointermove', onMove, { passive: true });
-    return () => window.removeEventListener('pointermove', onMove);
+    // phones: tilt instead of a mouse, relative to however the phone was held when it started
+    const coarse = matchMedia('(pointer: coarse)').matches;
+    let base: number | null = null;
+    const onTilt = (e: DeviceOrientationEvent) => {
+      if (e.gamma == null || e.beta == null) return;
+      base ??= e.beta;
+      const clamp = (x: number) => Math.max(-1, Math.min(1, x));
+      mouse.current.set(clamp(e.gamma / 22), clamp((e.beta - base) / 22));
+    };
+    if (coarse) window.addEventListener('deviceorientation', onTilt);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('deviceorientation', onTilt);
+    };
   }, []);
 
   useFrame((_, delta) => {

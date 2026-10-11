@@ -2,7 +2,7 @@
 
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BANG_START, BEATS, BURST_START, beatAt, JOURNEY_SCREENS, scienceOf, scrollFromStory, storyFromScroll } from './beats';
 import { useExperience } from '@/store/useExperience';
 import { track } from '@/analytics/track';
@@ -54,7 +54,9 @@ export function ScrollDriver({ smooth = true }: { smooth?: boolean }) {
     // Always start at the beginning; returning visitors get the explicit Resume prompt instead.
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     window.scrollTo(0, 0);
-    lenis = smooth ? new Lenis({ lerp: 0.085, wheelMultiplier: 0.9, touchMultiplier: 1.2, syncTouch: false }) : null;
+    // touch: Lenis drives the swipe too (momentum, same glide as the wheel) so phones feel cinematic
+    const touch = matchMedia('(pointer: coarse)').matches;
+    lenis = smooth ? new Lenis({ lerp: 0.085, wheelMultiplier: 0.9, touchMultiplier: touch ? 1.5 : 1.2, syncTouch: touch, syncTouchLerp: 0.075 }) : null;
 
     let last = -1;
     let lastT = performance.now();
@@ -81,7 +83,11 @@ export function ScrollDriver({ smooth = true }: { smooth?: boolean }) {
       setScroll(p, v);
 
       const beat = beatAt(p);
-      if (beat.id !== useExperience.getState().activeBeat) setActiveBeat(beat.id, scienceOf(beat));
+      if (beat.id !== useExperience.getState().activeBeat) {
+        // a light tap as each new scene arrives (phones that support it; needs a prior tap on the page)
+        if (touch && v > 0 && 'vibrate' in navigator && (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation?.hasBeenActive) navigator.vibrate(6);
+        setActiveBeat(beat.id, scienceOf(beat));
+      }
       if (!reached.has(beat.id)) {
         reached.add(beat.id);
         track('beat_reached', { beat: beat.id, progress: +p.toFixed(3) });
@@ -177,6 +183,9 @@ export function ScrollDriver({ smooth = true }: { smooth?: boolean }) {
 }
 
 /** The tall element whose scroll length *is* the timeline. */
+/** Phones: each swipe covers more of the story (a shorter page), so it never feels like a slog. */
+const TOUCH_LENGTH = 0.7;
 export function JourneySpacer() {
-  return <div id="journey" aria-hidden style={{ height: `${JOURNEY_SCREENS * 100}svh` }} />;
+  const [k] = useState(() => (typeof window !== 'undefined' && matchMedia('(pointer: coarse)').matches ? TOUCH_LENGTH : 1));
+  return <div id="journey" aria-hidden style={{ height: `${JOURNEY_SCREENS * k * 100}svh` }} />;
 }
