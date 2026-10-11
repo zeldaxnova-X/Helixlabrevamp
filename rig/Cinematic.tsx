@@ -33,7 +33,8 @@ export default function Cinematic() {
       <ScrollDriver smooth={!reduced} />
       <div className="stage" aria-hidden>
         <Canvas
-          dpr={tier === 'high' ? [1, 1.75] : [1, 1.25]}
+          // render close to the screen's own resolution: crisp on retina and phones
+          dpr={tier === 'high' ? [1, 2] : tier === 'mid' ? [1, 1.75] : [1, 1.5]}
           gl={{ antialias: false, powerPreference: 'high-performance', alpha: false, stencil: false, toneMapping: THREE.NoToneMapping }}
           camera={{ fov: 42, near: 0.004, far: 40000, position: [1.3, 0.75, 2.75] }}
           onCreated={({ gl }) => gl.setClearColor('#020309')}

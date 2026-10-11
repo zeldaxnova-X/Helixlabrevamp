@@ -5,7 +5,7 @@ import { BEATS, CHAPTERS, SKIP_TO, beatById, envelope, local, smooth, type Beat,
 import { journey, readResume, clearResume } from '@/rig/ScrollDriver';
 import { useProgressStyle } from './useProgressStyle';
 import { TopBar } from './TopBar';
-import { EARTH_FACTS, HERO, LABS, LEARN, LEARN_MONTAGE, PRECIOUS, SCIENCES, BLACK_HOLE, VOYAGER, signUpHref, type Science } from '@/content/site';
+import { EARTH_FACTS, HERO, LABS, LEARN, LEARN_MONTAGE, PRECIOUS, SCIENCES, VOYAGER, signUpHref, type Science } from '@/content/site';
 import { useExperience } from '@/store/useExperience';
 import { track } from '@/analytics/track';
 import { audio } from '@/audio/engine';
@@ -51,7 +51,6 @@ export function CinematicOverlay() {
         <SciencePanel key={s.id} science={s} />
       ))}
       <EarthFacts />
-      <FactPanel beatId="blackhole" data={BLACK_HOLE} />
       <FactPanel beatId="voyager" data={VOYAGER} />
       <LearnMore />
       <ProgressRail />
@@ -321,7 +320,7 @@ function EarthFacts() {
 }
 
 /** Voyager: centred on screen, with the reasons it matters revealed one by one. */
-function FactPanel({ beatId, data }: { beatId: string; data: typeof VOYAGER | typeof BLACK_HOLE }) {
+function FactPanel({ beatId, data }: { beatId: string; data: typeof VOYAGER }) {
   const beat = beatById(beatId);
   const [a, b] = beat.range;
   const s = a + (b - a) * 0.12;

@@ -393,8 +393,8 @@ export function Saturn() {
     scene.traverse((o) => {
       const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
       if (m?.name === 'saturn2_B') {
-        m.color.setScalar(0.42);
-        m.opacity = 0.65;
+        m.color.setScalar(0.3);
+        m.opacity = 0.6;
         m.envMapIntensity = 0;
       }
     });

@@ -6,7 +6,7 @@ import { Suspense, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 
 /** Dev-only: every model normalised to a 2-unit box, side by side. */
-const ALL = ['earth', 'moon', 'sun', 'saturn', 'satellite', 'voyager', 'space', 'dna', 'jupiter', 'uranus', 'neptune', 'mars', 'blackhole'];
+const ALL = ['earth', 'moon', 'sun', 'saturn', 'satellite', 'voyager', 'space', 'dna', 'jupiter', 'uranus', 'neptune', 'mars'];
 const q = typeof window !== 'undefined' ? new URLSearchParams(location.search) : null;
 const MODELS = q?.get('only') ? [q.get('only')!] : ALL;
 const CAM = (q?.get('cam') ?? '0,0.4,16').split(',').map(Number) as [number, number, number];

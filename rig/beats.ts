@@ -89,13 +89,13 @@ const pathAt = (r: number): Vec3 => {
   const d = nrm([IN_DIR[0] + (EARTH_DIR[0] - IN_DIR[0]) * t, IN_DIR[1] + (EARTH_DIR[1] - IN_DIR[1]) * t, IN_DIR[2] + (EARTH_DIR[2] - IN_DIR[2]) * t]);
   return S(d[0] * r, d[1] * r, d[2] * r);
 };
-/** A planet just beside the path (4 of its radii to one side, a little below) so we pass it close. */
+/** A planet just beside the path (3 of its radii to one side, a little below) so we pass it close. */
 const besidePath = (au: number, R: number, side: 1 | -1): Vec3 => {
   const p = pathAt(au * AU);
   const q = pathAt(au * AU - 20);
   const t = nrm([q[0] - p[0], q[1] - p[1], q[2] - p[2]]);
   const lat = nrm([-t[2], 0, t[0]]);
-  return [p[0] + lat[0] * 4 * R * side, p[1] - 0.8 * R, p[2] + lat[2] * 4 * R * side];
+  return [p[0] + lat[0] * 3 * R * side, p[1] - 0.6 * R, p[2] + lat[2] * 3 * R * side];
 };
 // true radii relative to Earth (3 units): Neptune 3.88, Uranus 4.0, Saturn 9.45, Jupiter 11.2, Mars 0.53, Moon 0.273
 const PLANETS = {
@@ -111,9 +111,6 @@ export const WORLD = {
   earthA: [0, 0, 0] as Vec3,
   earthARadius: 2,
   voyager: [0, 0, -900] as Vec3,
-  /** Between the nebulae and Voyager: where the biggest stars end up. Far from Voyager (it would not survive). */
-  blackhole: [-220, -20, -480] as Vec3,
-  blackholeRadius: 10,
   /** Milky Way: centre, world radius and orientation of need_some_space.glb. */
   galaxy: [0, -200, -7000] as Vec3,
   galaxyRadius: 2400,
@@ -146,7 +143,6 @@ export const WORLD = {
 } as const;
 
 const E = EARTH;
-const BH = WORLD.blackhole;
 const YAH = WORLD.youAreHere;
 /** Bank angle that lines the galaxy disc up with the flight footage (tuned by eye). */
 export const GALAXY_BANK = 1.0;
@@ -204,15 +200,15 @@ const diveKeys = (): Beat['camera'] => {
 };
 /** Voyager framing: a slow orbit that keeps the craft in the same spot, right beside its panel. */
 const VOY: Vec3 = [0, 0, -900];
-const voyCam = (a: number): Vec3 => [7.6 * Math.sin(a), 1.2, VOY[2] + 7.6 * Math.cos(a)];
-const voyLook = (a: number): Vec3 => [-0.9 * Math.cos(a), 0, VOY[2] + 0.9 * Math.sin(a)];
+const voyCam = (a: number): Vec3 => [6.3 * Math.sin(a), 1, VOY[2] + 6.3 * Math.cos(a)];
+const voyLook = (a: number): Vec3 => [-0.75 * Math.cos(a), 0, VOY[2] + 0.75 * Math.sin(a)];
 const off = (a: Vec3, x: number, y: number, z: number): Vec3 => [a[0] + x, a[1] + y, a[2] + z];
 /** Earth on the right of frame, text on the left: shared by the sciences. */
 const SIDE_CAM = At(-2.8, 1.3, 10.6);
 const SIDE_LOOK = At(-3.4, 0, -0.9);
 /** A station in front-left of Earth, framed right of centre. */
-const stationCam = (p: Vec3): Vec3 => off(p, -1.1, 0.4, 7.6);
-const stationLook = (p: Vec3): Vec3 => off(p, -2.1, 0, -0.5);
+const stationCam = (p: Vec3): Vec3 => off(p, -1, 0.35, 6.7);
+const stationLook = (p: Vec3): Vec3 => off(p, -1.85, 0, -0.45);
 /** Between two labs: ease back until both are in frame, so one slides out as the next slides in. */
 const between = (a: Vec3, b: Vec3, back: number): { pos: Vec3; look: Vec3 } => {
   const m: Vec3 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
@@ -286,33 +282,16 @@ export const BEATS: Beat[] = [
   {
     id: 'newborn',
     chapter: 'voyage',
-    range: [0.28, 0.315],
-    // drift forward through the newborn nebulae, toward something dark ahead
+    range: [0.28, 0.36],
+    // drift forward through the newborn nebulae, then on toward a tiny human-made light
     camera: [
       { at: 0.45, pos: [0, 1.5, -120], look: [0, 0, -400], fov: 58 },
-      { at: 1, pos: off(BH, 70, 14, 170), look: BH, fov: 44 },
+      { at: 1, pos: [-10, 5, -740], look: [0, 0, -900], fov: 44 },
     ],
     narration: NARRATION.newborn,
-    narrationWindow: [0.25, 1],
+    narrationWindow: [0.2, 0.87],
     cue: 'whoosh',
     parallax: 1,
-  },
-  {
-    id: 'blackhole',
-    chapter: 'voyage',
-    range: [0.315, 0.36],
-    // a slow arc round it, the disc to the right of the panel
-    camera: [
-      { at: 0.22, pos: off(BH, 16, 4, 30), look: off(BH, -9, 0, 0), fov: 42, hold: true },
-      { at: 0.62, pos: off(BH, -6, 6, 32), look: off(BH, -9.5, 0, 0), fov: 42, hold: true },
-      // turn away and head on: the black hole is behind us and gone before Voyager appears
-      { at: 1, pos: [-140, 6, -600], look: [0, 0, -900], fov: 40 },
-    ],
-    narration: NARRATION.blackhole,
-    narrationWindow: [0, 0.15],
-    hud: { title: 'A black hole', line: 'Not even light gets out' },
-    subjectAngle: 15,
-    parallax: 0.3,
   },
   {
     id: 'voyager',
@@ -331,7 +310,7 @@ export const BEATS: Beat[] = [
       { at: 1, pos: [-6, 4, -980], look: [0, -200, -7000], fov: 42 },
     ],
     narration: NARRATION.toVoyager,
-    narrationWindow: [-0.2, 0.16],
+    narrationWindow: [-0.3, 0.2],
     hud: { title: 'Voyager 1', line: 'Launched 1977 · now in interstellar space' },
     subjectAngle: 7,
     parallax: 0.2,
@@ -361,7 +340,7 @@ export const BEATS: Beat[] = [
       { at: 0.6905, pos: SOLAR_ENTRY.pos, look: SOLAR_ENTRY.look, fov: 44, hold: true, cut: true },
       // Neptune, small and ahead beside the Sun, then growing
       { at: 0.825, ...approachOf('neptune'), fov: 42 },
-      { at: 0.95, ...approachOf('neptune', 15), fov: 42 },
+      { at: 0.95, ...approachOf('neptune', 12), fov: 42 },
     ],
     narration: NARRATION.youAreHere,
     narrationWindow: [0.15, 0.42],
@@ -397,7 +376,7 @@ export const BEATS: Beat[] = [
     chapter: 'home',
     range: [0.59, 0.61],
     camera: [
-      { at: 0.1, ...approachOf('uranus', 15), fov: 42 },
+      { at: 0.1, ...approachOf('uranus', 12), fov: 42 },
       { at: 0.5, ...passOf('uranus'), fov: 42 },
       { at: 0.8, ...approachOf('saturn'), fov: 42 },
     ],
@@ -411,7 +390,7 @@ export const BEATS: Beat[] = [
     chapter: 'home',
     range: [0.61, 0.636],
     camera: [
-      { at: 0.231, ...approachOf('saturn', 15), fov: 42 },
+      { at: 0.231, ...approachOf('saturn', 12), fov: 42 },
       { at: 0.615, ...passOf('saturn'), fov: 42 },
       { at: 0.846, ...approachOf('jupiter'), fov: 42 },
     ],
@@ -424,7 +403,7 @@ export const BEATS: Beat[] = [
     chapter: 'home',
     range: [0.636, 0.66],
     camera: [
-      { at: 0.25, ...approachOf('jupiter', 15), fov: 42 },
+      { at: 0.25, ...approachOf('jupiter', 12), fov: 42 },
       { at: 0.667, ...passOf('jupiter'), fov: 42 },
       { at: 0.917, ...approachOf('mars'), fov: 42 },
     ],
@@ -437,7 +416,7 @@ export const BEATS: Beat[] = [
     range: [0.66, 0.685],
     // the slowest pass: Mars is small, so we come in close and take our time
     camera: [
-      { at: 0.32, ...approachOf('mars', 15), fov: 42 },
+      { at: 0.32, ...approachOf('mars', 12), fov: 42 },
       { at: 0.8, ...passOf('mars'), fov: 42 },
     ],
     narration: NARRATION.rocky,
@@ -570,7 +549,6 @@ export const SCENES = {
   matter: [0.145, 0.245],
   bigbang: [0.225, 0.33],
   nebula: [0.26, 0.36],
-  blackhole: [0.29, 0.362],
   voyager: [0.33, 0.44],
   galaxy: [0.33, 0.565],
   sun: [0.5, 0.72],
@@ -599,7 +577,7 @@ export type SceneKey = keyof typeof SCENES;
 const PACE: [number, number, number][] = [
   // the white-out of the Big Bang lingers
   [0.2354, 0.251, 1.4],
-  // the black hole and Voyager
+  // the nebulae and Voyager
   [0.315, 0.42, 1.35],
   // the planets on the way in
   [0.546, 0.7, 1.8],

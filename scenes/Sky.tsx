@@ -157,7 +157,9 @@ const skyOpacity = (p: number) =>
 
 export function SkyDome() {
   const tier = useTexTier();
-  const map = useSharedTexture(`/assets/textures/milkyway-sky-${tier}.webp`);
+  const gpuTier = useExperience((s) => s.tier);
+  // 8K on capable GPUs: the dome wraps all 360°, so the visible slice needs every pixel
+  const map = useSharedTexture(`/assets/textures/milkyway-sky-${gpuTier === 'high' ? 'hd' : tier}.webp`);
   const camera = useThree((s) => s.camera);
   const ref = useRef<THREE.Mesh>(null);
   const geo = useDisposable(() => new THREE.SphereGeometry(4000, 64, 32), []);

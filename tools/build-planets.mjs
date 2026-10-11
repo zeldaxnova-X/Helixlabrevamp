@@ -1,5 +1,5 @@
 /**
- * The outer planets, Mars and the black hole: convert the Sketchfab
+ * The outer planets and Mars: convert the Sketchfab
  * spec-gloss materials to metal-rough, bake ring particle meshes (millions of
  * tiny textured chips) into compact point clouds like Saturn's, then meshopt +
  * WebP everything.
@@ -31,7 +31,6 @@ const JOBS = {
   uranus: { src: 'Uranus/uranus.glb', rings: 'uranus2_A', keep: 160000, tex: 2048 },
   neptune: { src: 'Neptune/neptune.glb', rings: 'neptune2_A', keep: 120000, tex: 2048 },
   mars: { src: 'Mars/mars.glb', rings: null, tex: 2048 },
-  blackhole: { src: 'Blackhole/black_hole.glb', rings: null, tex: 1024 },
 };
 
 await MeshoptEncoder.ready;

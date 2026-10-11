@@ -1,9 +1,9 @@
 'use client';
 
-import { lazy, Suspense, useEffect, useState, type ComponentType, type LazyExoticComponent } from 'react';
+import { Component, lazy, Suspense, useEffect, useState, type ComponentType, type LazyExoticComponent, type ReactNode } from 'react';
 import { SCENES, type SceneKey } from './beats';
 import { useExperience } from '@/store/useExperience';
-import { preloadModel, type ModelKey } from './models';
+import { markModelFailed, preloadModel, type ModelKey } from './models';
 
 /**
  * Proximity mounting. Each scene module is code-split and only *exists* while
@@ -22,7 +22,6 @@ const importers: Record<SceneKey, () => Promise<{ default: ComponentType }>> = {
   matter: () => import('@/scenes/MatterAntimatter'),
   bigbang: () => import('@/scenes/BigBang'),
   nebula: () => V().then((m) => ({ default: m.Nebula })),
-  blackhole: () => PL().then((m) => ({ default: m.BlackHole })),
   voyager: () => V().then((m) => ({ default: m.Voyager })),
   galaxy: () => V().then((m) => ({ default: m.MilkyWay })),
   sun: () => V().then((m) => ({ default: m.Sun })),
@@ -49,7 +48,6 @@ const PREFETCH = 0.09;
 /** GLBs each scene needs — fetched + decoded one range ahead, like the JS. */
 const SCENE_MODELS: Partial<Record<SceneKey, ModelKey[]>> = {
   earthA: ['earth'],
-  blackhole: ['blackhole'],
   voyager: ['voyager'],
   galaxy: ['space'],
   sun: ['sun'],
@@ -97,11 +95,32 @@ export function SceneSwitch() {
         .map((k) => {
           const Scene = lazies[k as SceneKey];
           return (
-            <Suspense key={k} fallback={null}>
-              <Scene />
-            </Suspense>
+            <SceneBoundary key={k}>
+              <Suspense fallback={null}>
+                <Scene />
+              </Suspense>
+            </SceneBoundary>
           );
         })}
     </>
   );
+}
+
+/**
+ * One scene failing (a model that will not download on this device) must never
+ * take the whole journey down. An HD or phone variant that fails is retried with
+ * the standard file; anything else just leaves that scene out.
+ */
+class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean; attempt: number }> {
+  state = { failed: false, attempt: 0 };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (this.state.attempt < 1 && markModelFailed(message)) this.setState({ failed: false, attempt: this.state.attempt + 1 });
+  }
+  render() {
+    return this.state.failed ? null : <Suspense key={this.state.attempt} fallback={null}>{this.props.children}</Suspense>;
+  }
 }

@@ -36,12 +36,15 @@ export function Callout({
     camera.getWorldDirection(fwd);
     const ahead = tmp.copy(pos).sub(camera.position).normalize().dot(fwd);
     const o = ahead > 0.2 ? Math.max(0, Math.min(1, visible(readExperience().progress, d))) : 0;
+    // near the right edge (narrow phone screens especially) the label reads leftwards instead
+    const ndc = tmp.copy(pos).project(camera);
+    node.classList.toggle('callout--left', side === 'left' || ndc.x > 0.3);
     node.style.opacity = o.toFixed(3);
     node.style.visibility = o < 0.01 ? 'hidden' : 'visible';
   });
   return (
     <Html position={at as unknown as [number, number, number]} zIndexRange={[20, 10]} style={{ pointerEvents: 'none' }}>
-      <div ref={el} className={`callout callout--${side}`} style={{ opacity: 0, visibility: 'hidden' }}>
+      <div ref={el} className="callout" style={{ opacity: 0, visibility: 'hidden' }}>
         <span className="callout__mark" aria-hidden>
           +
         </span>

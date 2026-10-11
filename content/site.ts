@@ -123,25 +123,12 @@ export const NARRATION = {
   newborn: 'From the first light came gas, then stars, then galaxies.',
   milkywayFar: 'Our galaxy. A spiral of hundreds of billions of suns.',
   youAreHere: 'One of them is ours.',
-  blackhole: 'The biggest stars end like this. Here, gravity wins.',
   outer: 'Out here a year lasts decades. Uranus takes 84 of ours to go once round the Sun.',
   rocky: 'Past Jupiter, the small rocky worlds begin. Ours is one of them.',
   toVoyager: 'Far from any star, one thing we made is still travelling.',
   sun: 'The Sun. An ordinary star, about 4.6 billion years old.',
   paleBlueDot: 'In 1990, Voyager looked back from 6 billion km and saw us like this. A pale blue dot.',
   home: 'One planet. Every part of it runs on rules.',
-} as const;
-
-/** Why black holes matter, shown beside the black hole. */
-export const BLACK_HOLE = {
-  title: 'A black hole',
-  kicker: 'Why it matters',
-  facts: [
-    { k: 'No way out', v: 'Past its edge, the event horizon, gravity is so strong that not even light escapes.' },
-    { k: 'The glow', v: 'The bright ring is gas and dust spiralling in, heated until it shines.' },
-    { k: '2019', v: 'We photographed one for the first time: M87*, about 55 million light years away.' },
-    { k: 'Sagittarius A*', v: 'Our own galaxy has one at its heart, about 4 million times the mass of the Sun.' },
-  ],
 } as const;
 
 /** Why Voyager matters, shown beside the spacecraft. */

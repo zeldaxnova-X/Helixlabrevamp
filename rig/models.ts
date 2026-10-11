@@ -1,6 +1,7 @@
 'use client';
 
 import { useGLTF } from '@react-three/drei';
+import { useThree } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { disposeObject } from '@/scenes/parts/dispose';
@@ -29,7 +30,6 @@ export const MODELS = {
   uranus: '/assets/models/uranus.glb',
   neptune: '/assets/models/neptune.glb',
   mars: '/assets/models/mars.glb',
-  blackhole: '/assets/models/blackhole.glb',
 } as const;
 export type ModelKey = keyof typeof MODELS;
 
@@ -39,8 +39,26 @@ const LITE: Partial<Record<ModelKey, string>> = {
   moon: '/assets/models/moon-lo.glb',
   mars: '/assets/models/mars-lo.glb',
 };
-/** The file to load on this device: low-tier GPUs get the lighter textures. */
-export const modelUrl = (key: ModelKey): string => (useExperience.getState().tier === 'low' && LITE[key]) || MODELS[key];
+/** HD variants for capable GPUs (tools/build-hd.mjs): the 8K day map. */
+const HD: Partial<Record<ModelKey, string>> = {
+  earth: '/assets/models/earth-hd.glb',
+};
+/** Variant files that failed to load on this device: fall back to the standard file. */
+const failed = new Set<string>();
+/** The file to load on this device: phones get lighter textures, capable GPUs the HD ones. */
+export const modelUrl = (key: ModelKey): string => {
+  const tier = useExperience.getState().tier;
+  const variant = (tier === 'low' && LITE[key]) || (tier === 'high' && HD[key]) || undefined;
+  return variant && !failed.has(variant) ? variant : MODELS[key];
+};
+/** Record a model URL that could not be loaded; returns true if a fallback exists for it. */
+export function markModelFailed(message: string): boolean {
+  const url = [...Object.values(LITE), ...Object.values(HD)].find((u) => u && message.includes(u));
+  if (!url) return false;
+  failed.add(url);
+  useGLTF.clear(url);
+  return true;
+}
 
 const refs = new Map<string, number>();
 const timers = new Map<string, number>();
@@ -48,7 +66,22 @@ const timers = new Map<string, number>();
 export function useModel(key: ModelKey) {
   const url = modelUrl(key);
   const gltf = useGLTF(url, false, true);
+  const gl = useThree((s) => s.gl);
   const scene = useMemo(() => gltf.scene.clone(true), [gltf]);
+  // sharp at grazing angles (planet limbs, the labs seen side-on): best anisotropic filtering
+  useEffect(() => {
+    const max = gl.capabilities.getMaxAnisotropy();
+    gltf.scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+      if (!m) return;
+      for (const t of [m.map, m.emissiveMap, m.normalMap, m.roughnessMap, m.metalnessMap, m.alphaMap]) {
+        if (t && t.anisotropy !== max) {
+          t.anisotropy = max;
+          t.needsUpdate = true;
+        }
+      }
+    });
+  }, [gltf, gl]);
 
   useEffect(() => {
     window.clearTimeout(timers.get(url));

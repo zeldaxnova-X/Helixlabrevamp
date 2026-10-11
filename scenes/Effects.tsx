@@ -88,12 +88,12 @@ export function Effects() {
 
   return (
     // MSAA on capable GPUs: without it planet limbs and cloud edges shimmer as Earth turns
-    <EffectComposer multisampling={tier === 'high' ? 4 : 0} enableNormalPass={false}>
+    <EffectComposer multisampling={tier === 'low' ? 0 : 4} enableNormalPass={false}>
       <Bloom ref={bloom} mipmapBlur intensity={0.9} luminanceThreshold={0.62} luminanceSmoothing={0.25} radius={0.78} levels={tier === 'high' ? 8 : 6} />
       <primitive object={bang} />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       <Vignette offset={0.28} darkness={0.72} />
-      <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.12} />
+      <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.05} />
     </EffectComposer>
   );
 }
