@@ -9,6 +9,10 @@ import { dotTexture, useDisposable } from '@/rig/gpu';
 import { useModel } from '@/rig/models';
 import { readExperience, useExperience } from '@/store/useExperience';
 import { fit, fitRobust } from './parts/fit';
+import { Callout, byDistance } from './parts/Callout';
+
+const SATURN_TAG = [WORLD.saturn[0] + WORLD.saturnRadius * 0.8, WORLD.saturn[1] + WORLD.saturnRadius * 0.85, WORLD.saturn[2]] as const;
+const saturnTag = byDistance(30 * WORLD.saturnRadius, 16 * WORLD.saturnRadius);
 
 /**
  * THE VOYAGE and the way HOME — every station between the Big Bang and Earth.
@@ -401,13 +405,16 @@ export function Saturn() {
     if (ref.current) ref.current.rotation.y = s.clock.elapsedTime * 0.01;
   });
   return (
-    // Saturn's axis is tilted about 26.7°
-    <group position={v3(WORLD.saturn)} rotation={[0.25, 0.5, 0.466]}>
+    <>
+    {/* tilted so its rings open toward us on the way in */}
+    <group position={v3(WORLD.saturn)} rotation={[-0.5, 0.5, 0.466]}>
       <group ref={ref} scale={scale}>
         <primitive object={scene} position={offset} />
         {rings && <points geometry={rings.geo} material={rings.mat} position={offset} frustumCulled={false} />}
       </group>
     </group>
+    <Callout at={SATURN_TAG} title="Saturn" line="1.4 billion km from the Sun" visible={saturnTag} />
+    </>
   );
 }
 
@@ -433,6 +440,8 @@ function useSaturnRings() {
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(pos, 3, true));
         geo.setAttribute('aCol', new THREE.BufferAttribute(col, 3, true));
+        // phones draw a random 40% of the chips (they are shuffled at bake time)
+        if (useExperience.getState().tier === 'low') geo.setDrawRange(0, Math.floor(n * 0.4));
         const mat = new THREE.ShaderMaterial({
           uniforms: {
             uMin: { value: new THREE.Vector3(...min) },

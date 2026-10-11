@@ -7,7 +7,7 @@ import { CameraRig } from './CameraRig';
 import { JourneySpacer, ScrollDriver } from './ScrollDriver';
 import { SceneSwitch } from './SceneSwitch';
 import { DebugHud } from './DebugHud';
-import { MODELS, preloadModel } from './models';
+import { modelUrl, preloadModel } from './models';
 import { BEATS, CUE_POINTS, scienceOf } from './beats';
 import { Dust, SkyDome, Starfield } from '@/scenes/Sky';
 import { SunLight } from '@/scenes/parts/SunLight';
@@ -73,7 +73,7 @@ function Preload() {
       v.oncanplaythrough = v.onerror = () => resolve();
       v.load();
     });
-    const jobs: Promise<unknown>[] = [document.fonts?.ready ?? Promise.resolve(), videoReady, fetch(MODELS.earth).then((r) => r.arrayBuffer())];
+    const jobs: Promise<unknown>[] = [document.fonts?.ready ?? Promise.resolve(), videoReady, fetch(modelUrl('earth')).then((r) => r.arrayBuffer())];
     preloadModel('earth');
     audio.preloadActOne();
     let done = 0;

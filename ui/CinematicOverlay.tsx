@@ -8,6 +8,7 @@ import { TopBar } from './TopBar';
 import { EARTH_FACTS, HERO, LABS, LEARN, LEARN_MONTAGE, PRECIOUS, SCIENCES, BLACK_HOLE, VOYAGER, signUpHref, type Science } from '@/content/site';
 import { useExperience } from '@/store/useExperience';
 import { track } from '@/analytics/track';
+import { audio } from '@/audio/engine';
 
 /** Everything 2D that sits over (or under) the canvas in the cinematic mode. */
 export function CinematicOverlay() {
@@ -90,12 +91,63 @@ function OpeningVideo() {
       <div ref={mark} className="opening__mark">
         <p className="hud-label">A journey through the rules of the universe</p>
         <h2 className="display display--xl">{HERO.wordmark}</h2>
+        <Gate />
         <p className="scrollcue">
-          <span>Scroll to begin</span>
+          <span>Or scroll</span>
           <i />
         </p>
       </div>
     </>
+  );
+}
+
+/**
+ * The way in, edolus-style: one framed action that also turns the sound on (the
+ * click is the gesture browsers need for audio), and a quieter one for visitors
+ * who would rather watch. Scrolling still works for anyone who just scrolls.
+ */
+function Gate() {
+  const soundOn = () => {
+    const st = useExperience.getState();
+    if (st.muted) {
+      st.setMuted(false);
+      audio.setEnabled(true);
+      track('audio_unmute');
+    }
+  };
+  return (
+    <div className="gate">
+      <button
+        type="button"
+        className="btn btn--primary btn--lg btn--bracket"
+        onClick={() => {
+          soundOn();
+          track('skip_intro', { via: 'gate-begin' });
+          journey.scrollToProgress(0.06, { duration: 3.2 });
+        }}
+      >
+        Begin the journey
+      </button>
+      <button
+        type="button"
+        className="gate__alt"
+        onClick={() => {
+          soundOn();
+          useExperience.getState().setAutoplay(true);
+          track('autoplay_on');
+        }}
+      >
+        ▶ Or let it play
+      </button>
+      <p className="gate__phones">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+          <path d="M4 14v-2a8 8 0 0 1 16 0v2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <rect x="3" y="14" width="4" height="6" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <rect x="17" y="14" width="4" height="6" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+        Best with headphones
+      </p>
+    </div>
   );
 }
 
@@ -108,7 +160,7 @@ function Hero() {
       <h2 className="display display--l">{HERO.headline}</h2>
       <p className="cine-hero__sub">{HERO.subline}</p>
       <div className="cine-hero__ctas">
-        <a className="btn btn--primary btn--lg" href={signUpHref('hero')} onClick={() => track('signup_click', { source: 'hero' })}>
+        <a className="btn btn--primary btn--lg btn--bracket" href={signUpHref('hero')} onClick={() => track('signup_click', { source: 'hero' })}>
           {HERO.cta}
         </a>
         <button type="button" className="btn btn--ghost btn--lg" onClick={() => journey.scrollToProgress(0.15, { duration: 3 })}>
@@ -314,6 +366,8 @@ function FactPanel({ beatId, data }: { beatId: string; data: typeof VOYAGER | ty
 /** The invitation, over the lighthouse footage. */
 function LearnMore() {
   const ref = useRef<HTMLDivElement>(null);
+  // phones in portrait get the portrait cuts of the same footage
+  const [tall] = useState(() => typeof window !== 'undefined' && window.innerWidth < window.innerHeight);
   const vids = useRef<(HTMLVideoElement | null)[]>([]);
   const [shot, setShot] = useState(0);
   const [active, setActive] = useState(false);
@@ -339,8 +393,8 @@ function LearnMore() {
           key={m.src}
           ref={(el) => void (vids.current[i] = el)}
           className={`learn__video ${i === shot ? 'is-on' : ''}`}
-          src={m.src}
-          poster={m.poster}
+          src={tall ? m.portrait : m.src}
+          poster={tall ? m.portraitPoster : m.poster}
           muted
           playsInline
           loop

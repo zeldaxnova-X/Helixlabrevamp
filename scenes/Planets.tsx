@@ -4,11 +4,12 @@ import { useAnimations } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { WORLD, local, smooth } from '@/rig/beats';
+import { WORLD, envelope, local, smooth } from '@/rig/beats';
 import { readExperience } from '@/store/useExperience';
 import { dotTexture, useDisposable } from '@/rig/gpu';
 import { useModel, type ModelKey } from '@/rig/models';
 import { fit } from './parts/fit';
+import { Callout, byDistance } from './parts/Callout';
 
 /**
  * The planets we pass on the way in from the edge of the solar system, and the
@@ -95,9 +96,11 @@ interface PlanetProps {
   rings?: Rings;
   /** Brightness of the solid ring meshes: the real rings of Jupiter, Uranus and Neptune are faint and dark. */
   ringMeshes?: { names: string[]; dim: number };
+  /** A pinned label: name and distance from the Sun. */
+  callout?: { title: string; line: string };
 }
 
-function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringMeshes }: PlanetProps) {
+function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringMeshes, callout }: PlanetProps) {
   const { scene, animations } = useModel(model);
   const { actions } = useAnimations(animations, scene);
   const { scale, offset } = useMemo(() => {
@@ -135,13 +138,18 @@ function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringM
   useFrame((s, dt) => {
     if (ref.current) ref.current.rotation.y += dt * spin;
   });
+  const tag = useMemo(() => [position[0]! + radius * 0.8, position[1]! + radius * 0.85, position[2]!] as const, [position, radius]);
+  const show = useMemo(() => byDistance(30 * radius, 16 * radius), [radius]);
   return (
-    <group position={v3(position)} rotation={tilt}>
-      <group ref={ref} scale={scale}>
-        <primitive object={scene} position={offset} />
-        {ring && <points geometry={ring.geo} material={ring.mat} position={offset} frustumCulled={false} />}
+    <>
+      <group position={v3(position)} rotation={tilt}>
+        <group ref={ref} scale={scale}>
+          <primitive object={scene} position={offset} />
+          {ring && <points geometry={ring.geo} material={ring.mat} position={offset} frustumCulled={false} />}
+        </group>
       </group>
-    </group>
+      {callout && <Callout at={tag} title={callout.title} line={callout.line} visible={show} />}
+    </>
   );
 }
 
@@ -155,16 +163,16 @@ const JUPITER_RING_MESH = { names: ['jupiter2_B'], dim: 0.12 };
 // Jupiter's real rings are almost invisible, hence the very low alpha.
 // axial tilts: Neptune 28°, Uranus 98° (it rolls on its side), Jupiter 3°, Mars 25°
 export function Neptune() {
-  return <Planet model="neptune" body="neptune1_A" radius={WORLD.neptuneRadius} position={WORLD.neptune} tilt={[0.2, 0.4, 0.49]} rings={NEPTUNE_RINGS} ringMeshes={NEPTUNE_RING_MESH} />;
+  return <Planet model="neptune" body="neptune1_A" radius={WORLD.neptuneRadius} position={WORLD.neptune} tilt={[0.2, 0.4, 0.49]} rings={NEPTUNE_RINGS} ringMeshes={NEPTUNE_RING_MESH} callout={{ title: 'Neptune', line: '4.5 billion km from the Sun' }} />;
 }
 export function Uranus() {
-  return <Planet model="uranus" body="uranus1_A" radius={WORLD.uranusRadius} position={WORLD.uranus} tilt={[0.15, 0.3, 1.71]} spin={0.03} rings={URANUS_RINGS} ringMeshes={URANUS_RING_MESH} />;
+  return <Planet model="uranus" body="uranus1_A" radius={WORLD.uranusRadius} position={WORLD.uranus} tilt={[0.15, 0.3, 1.71]} spin={0.03} rings={URANUS_RINGS} ringMeshes={URANUS_RING_MESH} callout={{ title: 'Uranus', line: '2.9 billion km from the Sun' }} />;
 }
 export function Jupiter() {
-  return <Planet model="jupiter" body="jupiter1_A" radius={WORLD.jupiterRadius} position={WORLD.jupiter} tilt={[0.05, 0.6, 0.05]} spin={0.04} rings={JUPITER_RINGS} ringMeshes={JUPITER_RING_MESH} />;
+  return <Planet model="jupiter" body="jupiter1_A" radius={WORLD.jupiterRadius} position={WORLD.jupiter} tilt={[0.05, 0.6, 0.05]} spin={0.04} rings={JUPITER_RINGS} ringMeshes={JUPITER_RING_MESH} callout={{ title: 'Jupiter', line: '778 million km from the Sun' }} />;
 }
 export function Mars() {
-  return <Planet model="mars" body="mars" radius={WORLD.marsRadius} position={WORLD.mars} tilt={[0.1, 0.8, 0.44]} spin={0.03} />;
+  return <Planet model="mars" body="mars" radius={WORLD.marsRadius} position={WORLD.mars} tilt={[0.1, 0.8, 0.44]} spin={0.03} callout={{ title: 'Mars', line: '228 million km from the Sun' }} />;
 }
 
 // ───────────────────────── a black hole ─────────────────────────
@@ -236,6 +244,7 @@ export function BlackHole() {
   });
   return (
     // seen almost edge-on, the classic lensed view: the disc crosses the shadow, its far side bends over it
+    <>
     <group position={v3(WORLD.blackhole)} rotation={[-0.28, 0, -0.08]}>
       <group ref={ref} scale={scale}>
         <primitive object={scene} position={offset} />
@@ -247,9 +256,20 @@ export function BlackHole() {
         <sprite material={lens.arc} scale={[lens.r * 6, lens.r * 3, 1]} renderOrder={3} />
         <sprite material={lens.ring} scale={lens.r * 3.2} renderOrder={4} />
       </group>
-    </group>
+      </group>
+      <Callout at={BH_TAGS.horizon} title="Event horizon" line="Nothing that crosses it comes back" visible={bhTags} />
+      <Callout at={BH_TAGS.ring} title="Photon ring" line="Light bent into orbit" visible={bhTags} side="left" />
+      <Callout at={BH_TAGS.disc} title="Accretion disc" line="Gas heated as it falls in" visible={bhTags} />
+    </>
   );
 }
+
+const BH_TAGS = {
+  horizon: [WORLD.blackhole[0] + 1.9, WORLD.blackhole[1] + 1.5, WORLD.blackhole[2]] as const,
+  ring: [WORLD.blackhole[0] - 2.1, WORLD.blackhole[1] + 1.6, WORLD.blackhole[2]] as const,
+  disc: [WORLD.blackhole[0] + 5.2, WORLD.blackhole[1] - 0.9, WORLD.blackhole[2] + 1.5] as const,
+};
+const bhTags = (p: number) => envelope(p, 0.322, 0.327, 0.341, 0.345);
 
 /**
  * Gravitational lensing, painted: a black horizon sphere (radius r), a thin photon

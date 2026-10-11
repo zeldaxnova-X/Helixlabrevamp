@@ -4,6 +4,7 @@ import { useGLTF } from '@react-three/drei';
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { disposeObject } from '@/scenes/parts/dispose';
+import { useExperience } from '@/store/useExperience';
 
 /**
  * Ref-counted GLB models.
@@ -32,11 +33,20 @@ export const MODELS = {
 } as const;
 export type ModelKey = keyof typeof MODELS;
 
+/** Phone-sized variants (tools/build-lo.mjs): same geometry, smaller textures. */
+const LITE: Partial<Record<ModelKey, string>> = {
+  earth: '/assets/models/earth-lo.glb',
+  moon: '/assets/models/moon-lo.glb',
+  mars: '/assets/models/mars-lo.glb',
+};
+/** The file to load on this device: low-tier GPUs get the lighter textures. */
+export const modelUrl = (key: ModelKey): string => (useExperience.getState().tier === 'low' && LITE[key]) || MODELS[key];
+
 const refs = new Map<string, number>();
 const timers = new Map<string, number>();
 
 export function useModel(key: ModelKey) {
-  const url = MODELS[key];
+  const url = modelUrl(key);
   const gltf = useGLTF(url, false, true);
   const scene = useMemo(() => gltf.scene.clone(true), [gltf]);
 
@@ -63,4 +73,4 @@ export function useModel(key: ModelKey) {
   return { scene, animations: gltf.animations };
 }
 
-export const preloadModel = (key: ModelKey) => useGLTF.preload(MODELS[key], false, true);
+export const preloadModel = (key: ModelKey) => useGLTF.preload(modelUrl(key), false, true);

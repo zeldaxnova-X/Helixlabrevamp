@@ -244,9 +244,9 @@ export const PRECIOUS = 'That is what makes every living thing precious.';
 
 /** Everyday-life footage for the Learn-more finale (every supplied clip is used). */
 export const LEARN_MONTAGE = [
-  { src: '/assets/video/lighthouse-wide.mp4', poster: '/assets/video/lighthouse-wide.jpg', caption: 'Light · optics' },
-  { src: '/assets/video/citynight-card.mp4', poster: '/assets/video/citynight-card.jpg', caption: 'Motion · F = m · a' },
-  { src: '/assets/video/citydusk-card.mp4', poster: '/assets/video/citydusk-card.jpg', caption: 'Life · cities · geometry' },
+  { src: '/assets/video/lighthouse-wide.mp4', poster: '/assets/video/lighthouse-wide.jpg', portrait: '/assets/video/lighthouse-portrait.mp4', portraitPoster: '/assets/video/lighthouse-portrait.jpg', caption: 'Light · optics' },
+  { src: '/assets/video/citynight-card.mp4', poster: '/assets/video/citynight-card.jpg', portrait: '/assets/video/city-night-portrait.mp4', portraitPoster: '/assets/video/city-night-portrait.jpg', caption: 'Motion · F = m · a' },
+  { src: '/assets/video/citydusk-card.mp4', poster: '/assets/video/citydusk-card.jpg', portrait: '/assets/video/city-dusk-portrait.mp4', portraitPoster: '/assets/video/city-dusk-portrait.jpg', caption: 'Life · cities · geometry' },
 ] as const;
 
 export const LEARN = {

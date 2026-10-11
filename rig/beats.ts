@@ -49,6 +49,8 @@ export interface Beat {
   hud?: { title: string; line: string };
   cue?: CueId;
   parallax?: number;
+  /** On desktop the subject sits this many degrees right of centre (beside a text panel). Phones re-centre it. */
+  subjectAngle?: number;
 }
 
 const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
@@ -238,6 +240,7 @@ export const BEATS: Beat[] = [
       { at: 0.35, pos: [-1.6, 0.5, 9.2], look: [-2.3, 0.15, 0], fov: 38 },
       { at: 1, pos: [-1.3, 0.6, 8.6], look: [-2.0, 0.15, 0], fov: 38 },
     ],
+    subjectAngle: 14,
     parallax: 0.35,
   },
   {
@@ -308,6 +311,7 @@ export const BEATS: Beat[] = [
     narration: NARRATION.blackhole,
     narrationWindow: [0, 0.15],
     hud: { title: 'A black hole', line: 'Not even light gets out' },
+    subjectAngle: 15,
     parallax: 0.3,
   },
   {
@@ -329,6 +333,7 @@ export const BEATS: Beat[] = [
     narration: NARRATION.toVoyager,
     narrationWindow: [-0.2, 0.16],
     hud: { title: 'Voyager 1', line: 'Launched 1977 · now in interstellar space' },
+    subjectAngle: 7,
     parallax: 0.2,
   },
   {
@@ -485,6 +490,7 @@ export const BEATS: Beat[] = [
       { at: 0.35, pos: At(-3.5, 6.5, 32), look: At(-9.5, 0, -2), fov: 42, hold: true },
       { at: 0.8, pos: At(-4, 6.3, 31), look: At(-9.5, 0, -2), fov: 42, hold: true },
     ],
+    subjectAngle: 16,
     parallax: 0.25,
   },
   {
@@ -496,6 +502,7 @@ export const BEATS: Beat[] = [
       { at: 0.82, pos: off(stationCam(WORLD.atom), 0.2, 0.2, -1.0), look: stationLook(WORLD.atom), fov: 38, hold: true },
     ],
     cue: 'whoosh',
+    subjectAngle: 15,
     parallax: 0.2,
   },
   {
@@ -507,6 +514,7 @@ export const BEATS: Beat[] = [
       { at: 0.4, pos: stationCam(WORLD.maths), look: stationLook(WORLD.maths), fov: 38, hold: true },
       { at: 0.8, pos: off(stationCam(WORLD.maths), 0.1, 0.4, -0.8), look: stationLook(WORLD.maths), fov: 38, hold: true },
     ],
+    subjectAngle: 15,
     parallax: 0.2,
   },
   {
@@ -521,6 +529,7 @@ export const BEATS: Beat[] = [
       { at: 0.9, pos: At(-3.5, 2.5, 17), look: At(-6.5, 0, -1), fov: 40, hold: true },
     ],
     cue: 'whoosh',
+    subjectAngle: 17,
     parallax: 0.2,
   },
 

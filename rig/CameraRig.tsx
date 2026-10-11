@@ -17,6 +17,10 @@ import { readExperience } from '@/store/useExperience';
  */
 export function CameraRig() {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
+  const size = useThree((s) => s.size);
+  // portrait framing state (smoothed): where the subject sits, and how much to lift it
+  const subject = useRef(0);
+  const lift = useRef(0);
   const sample = useRef<CameraSample>({ pos: [0, 0, 0], look: [0, 0, 0], fov: 40, roll: 0 });
   const roll = useRef(0);
   const pos = useRef(new THREE.Vector3());
@@ -75,9 +79,30 @@ export function CameraRig() {
     if (Math.abs(roll.current) > 1e-4) camera.rotateZ(roll.current);
 
     let dirty = false;
-    if (Math.abs(camera.fov - s.fov) > 0.01) {
-      camera.fov += (s.fov - camera.fov) * k;
+    // Portrait (phones): desktop frames put the subject right of a text panel. A
+    // portrait frame is too narrow for that, so widen a little, bring the subject to
+    // the centre and lift it into the upper part of the screen, above the text.
+    const aspect = size.width / Math.max(1, size.height);
+    const portrait = aspect < 0.95;
+    const fovTarget = portrait ? s.fov * Math.min(1.55, 1 + (1 / aspect - 1) * 0.45) : s.fov;
+    if (Math.abs(camera.fov - fovTarget) > 0.01) {
+      camera.fov += (fovTarget - camera.fov) * k;
       dirty = true;
+    }
+    subject.current += ((portrait ? beat.subjectAngle ?? 0 : 0) - subject.current) * k;
+    lift.current += ((portrait && beat.subjectAngle !== undefined ? 1 : 0) - lift.current) * k;
+    if (portrait) {
+      const W = size.width;
+      const H = size.height;
+      const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * aspect);
+      const x = (Math.tan(THREE.MathUtils.degToRad(subject.current)) / Math.tan(half)) * (W / 2);
+      const y = lift.current * H * 0.18;
+      const v = camera.view;
+      if (!v || !v.enabled || Math.abs(v.offsetX - x) > 0.5 || Math.abs(v.offsetY - y) > 0.5 || v.fullWidth !== W || v.fullHeight !== H) {
+        camera.setViewOffset(W, H, x, y, W, H);
+      }
+    } else if (camera.view?.enabled) {
+      camera.clearViewOffset();
     }
     // near plane ~1% of the distance to what we're looking at: tight enough for
     // close-ups, loose enough that Earth's clouds never z-fight its surface

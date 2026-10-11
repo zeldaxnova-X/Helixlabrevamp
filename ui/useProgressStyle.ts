@@ -18,6 +18,8 @@ export function useProgressStyle(ref: RefObject<HTMLElement | null>, fn: (p: num
       el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0) scale(${s.toFixed(4)})`;
       el.style.visibility = o < 0.01 ? 'hidden' : 'visible';
       el.style.pointerEvents = o > 0.6 ? 'auto' : 'none';
+      // lets CSS run one-shot reveals (headlines rising out of a mask) as an element arrives
+      el.classList.toggle('is-in', o > 0.5);
     };
     apply(useExperience.getState().progress);
     return useExperience.subscribe((st, prev) => st.progress !== prev.progress && apply(st.progress));
