@@ -12,6 +12,7 @@ import { fit, fitRobust } from './parts/fit';
 import { Callout, byDistance } from './parts/Callout';
 
 const SATURN_TAG = [WORLD.saturn[0] + WORLD.saturnRadius * 0.8, WORLD.saturn[1] + WORLD.saturnRadius * 0.85, WORLD.saturn[2]] as const;
+const SATURN_RING = [WORLD.saturn[0] + WORLD.saturnRadius * 0.45, WORLD.saturn[1] + WORLD.saturnRadius * 0.62, WORLD.saturn[2]] as const;
 const saturnTag = byDistance(30 * WORLD.saturnRadius, 16 * WORLD.saturnRadius);
 
 /**
@@ -413,7 +414,7 @@ export function Saturn() {
         {rings && <points geometry={rings.geo} material={rings.mat} position={offset} frustumCulled={false} />}
       </group>
     </group>
-    <Callout at={SATURN_TAG} title="Saturn" line="1.4 billion km from the Sun" visible={saturnTag} />
+    <Callout at={SATURN_TAG} portraitAt={SATURN_RING} title="Saturn" line="1.4 billion km from the Sun" visible={saturnTag} />
     </>
   );
 }

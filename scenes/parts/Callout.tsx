@@ -2,7 +2,7 @@
 
 import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { readExperience } from '@/store/useExperience';
 
@@ -17,8 +17,11 @@ export function Callout({
   line,
   visible,
   side = 'right',
+  portraitAt,
 }: {
   at: readonly [number, number, number];
+  /** Phones: where the ring sits (on the subject itself, edolus-style). Defaults to `at`. */
+  portraitAt?: readonly [number, number, number];
   title: string;
   line?: string;
   /** 0..1 opacity from the scroll clock and the camera's distance to the point. */
@@ -26,7 +29,9 @@ export function Callout({
   side?: 'right' | 'left';
 }) {
   const el = useRef<HTMLDivElement>(null);
-  const pos = useMemo(() => new THREE.Vector3(...at), [at]);
+  const [tall] = useState(() => typeof window !== 'undefined' && window.innerWidth < window.innerHeight);
+  const anchor = tall && portraitAt ? portraitAt : at;
+  const pos = useMemo(() => new THREE.Vector3(...anchor), [anchor]);
   const tmp = useMemo(() => new THREE.Vector3(), []);
   const fwd = useMemo(() => new THREE.Vector3(), []);
   useFrame(({ camera }) => {
@@ -43,7 +48,7 @@ export function Callout({
     node.style.visibility = o < 0.01 ? 'hidden' : 'visible';
   });
   return (
-    <Html position={at as unknown as [number, number, number]} zIndexRange={[20, 10]} style={{ pointerEvents: 'none' }}>
+    <Html position={anchor as unknown as [number, number, number]} zIndexRange={[20, 10]} style={{ pointerEvents: 'none' }}>
       <div ref={el} className="callout" style={{ opacity: 0, visibility: 'hidden' }}>
         <span className="callout__mark" aria-hidden>
           +

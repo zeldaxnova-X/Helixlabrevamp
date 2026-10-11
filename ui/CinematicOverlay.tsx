@@ -208,6 +208,18 @@ function HudCaption({ beat }: { beat: Beat }) {
   );
 }
 
+/**
+ * Phones present a panel one idea at a time (edolus-style): the headline, then
+ * each fact in turn replacing the last. Marks which step is current for the
+ * scroll position; the portrait CSS shows only that one. Desktop ignores it.
+ */
+function markStep(els: (HTMLElement | null)[], p: number, s: number, e: number) {
+  const t = (p - s) / Math.max(1e-6, e - s);
+  const n = els.length;
+  const idx = t < 0.1 ? -1 : Math.min(n - 1, Math.floor(((t - 0.1) / 0.86) * n));
+  els.forEach((el, i) => el?.classList.toggle('is-current', i === idx));
+}
+
 function SciencePanel({ science }: { science: Science }) {
   const beat = beatById(science.id);
   const [a, b] = beat.range;
@@ -216,6 +228,7 @@ function SciencePanel({ science }: { science: Science }) {
   const ref = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const lawRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const lifeRef = useRef<HTMLParagraphElement>(null);
   const isBio = science.id === 'biology';
   const end = isBio ? a + (b - a) * 0.67 : e;
 
@@ -233,6 +246,7 @@ function SciencePanel({ science }: { science: Science }) {
           el.style.transform = `translateX(${(1 - k) * -18}px)`;
           el.style.filter = `blur(${(1 - k) * 6}px)`;
         });
+        markStep([...lawRefs.current, lifeRef.current], p, s, end);
         const v = video.current;
         if (v) {
           if (p > s - 0.01 && p < end + 0.01) void v.play().catch(() => {});
@@ -267,7 +281,7 @@ function SciencePanel({ science }: { science: Science }) {
         </figure>
       )}
       {science.legend && <p className="science__legend">{science.legend}</p>}
-      <p className="science__life">
+      <p ref={lifeRef} className="science__life">
         <span>Why it keeps us alive</span>
         {science.life}
       </p>
@@ -288,10 +302,12 @@ function EarthFacts() {
   const ref = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const bio = SCIENCES.find((x) => x.id === 'biology')!;
+  const steps = useRef<(HTMLElement | null)[]>([]);
   useProgressStyle(ref, (p) => ({ o: envelope(p, s, s + 0.006, e - 0.005, e), y: (1 - smooth(local(p, s, s + 0.01))) * 30 }));
   useEffect(
     () =>
       useExperience.subscribe((st) => {
+        markStep(steps.current, st.progress, s, e);
         const v = video.current;
         if (!v) return;
         if (st.progress > s - 0.01 && st.progress < e) void v.play().catch(() => {});
@@ -308,11 +324,15 @@ function EarthFacts() {
         The only place we know where the rules made life.
       </h2>
       <ul className="facts">
-        {EARTH_FACTS.map((f) => (
-          <li key={f}>{f}</li>
+        {EARTH_FACTS.map((f, i) => (
+          <li key={f} ref={(el) => void (steps.current[i] = el)}>
+            {f}
+          </li>
         ))}
       </ul>
-      <p className="science__precious">{PRECIOUS}</p>
+      <p ref={(el) => void (steps.current[EARTH_FACTS.length] = el)} className="science__precious">
+        {PRECIOUS}
+      </p>
       {bio.video && (
         <figure className="science__video">
           <video ref={video} src={bio.video.src} poster={bio.video.poster} muted playsInline loop preload="none" />
@@ -343,6 +363,7 @@ function FactPanel({ beatId, data }: { beatId: string; data: typeof VOYAGER }) {
           el.style.transform = `translateX(${(1 - k) * -16}px)`;
           el.style.filter = `blur(${(1 - k) * 5}px)`;
         });
+        markStep(items.current, st.progress, s, e);
       }),
     [s, e],
   );

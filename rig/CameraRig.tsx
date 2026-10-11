@@ -52,7 +52,7 @@ export function CameraRig() {
     };
   }, []);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const dt = Math.min(delta, 1 / 20);
     const { progress, reducedMotion } = readExperience();
     const s = sampleCamera(progress, sample.current);
@@ -87,6 +87,12 @@ export function CameraRig() {
     camera.position.addScaledVector(right, mouseSmoothed.current.x * parallax.current);
     camera.position.addScaledVector(up, -mouseSmoothed.current.y * parallax.current * 0.6);
     camera.lookAt(look.current);
+    // phones: a slow, subtle drift (a fraction of a degree) so no frame ever sits still
+    if (size.width < size.height * 0.95 && !reducedMotion) {
+      const t = state.clock.elapsedTime;
+      camera.rotateY(Math.sin(t * 0.11) * 0.011);
+      camera.rotateX(Math.sin(t * 0.083 + 1.3) * 0.007);
+    }
     // bank (used to line the galaxy up with the flight footage)
     roll.current += (s.roll - roll.current) * k;
     if (Math.abs(roll.current) > 1e-4) camera.rotateZ(roll.current);
@@ -97,7 +103,8 @@ export function CameraRig() {
     // the centre and lift it into the upper part of the screen, above the text.
     const aspect = size.width / Math.max(1, size.height);
     const portrait = aspect < 0.95;
-    const fovTarget = portrait ? s.fov * Math.min(1.55, 1 + (1 / aspect - 1) * 0.45) : s.fov;
+    // only a little wider than desktop: the subject stays big and close, edolus-style
+    const fovTarget = portrait ? s.fov * Math.min(1.35, 1 + (1 / aspect - 1) * 0.3) : s.fov;
     if (Math.abs(camera.fov - fovTarget) > 0.01) {
       camera.fov += (fovTarget - camera.fov) * k;
       dirty = true;
@@ -109,7 +116,7 @@ export function CameraRig() {
       const H = size.height;
       const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * aspect);
       const x = (Math.tan(THREE.MathUtils.degToRad(subject.current)) / Math.tan(half)) * (W / 2);
-      const y = lift.current * H * 0.18;
+      const y = lift.current * H * 0.07;
       const v = camera.view;
       if (!v || !v.enabled || Math.abs(v.offsetX - x) > 0.5 || Math.abs(v.offsetY - y) > 0.5 || v.fullWidth !== W || v.fullHeight !== H) {
         camera.setViewOffset(W, H, x, y, W, H);

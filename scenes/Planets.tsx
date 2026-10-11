@@ -136,6 +136,8 @@ function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringM
     if (ref.current) ref.current.rotation.y += dt * spin;
   });
   const tag = useMemo(() => [position[0]! + radius * 0.8, position[1]! + radius * 0.85, position[2]!] as const, [position, radius]);
+  // phones: the ring sits on the planet's upper limb
+  const ringAt = useMemo(() => [position[0]! + radius * 0.45, position[1]! + radius * 0.62, position[2]!] as const, [position, radius]);
   const show = useMemo(() => byDistance(30 * radius, 16 * radius), [radius]);
   return (
     <>
@@ -145,7 +147,7 @@ function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringM
           {ring && <points geometry={ring.geo} material={ring.mat} position={offset} frustumCulled={false} />}
         </group>
       </group>
-      {callout && <Callout at={tag} title={callout.title} line={callout.line} visible={show} />}
+      {callout && <Callout at={tag} portraitAt={ringAt} title={callout.title} line={callout.line} visible={show} />}
     </>
   );
 }

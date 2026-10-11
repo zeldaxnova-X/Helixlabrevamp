@@ -2,6 +2,7 @@
 
 import { useEffect, type RefObject } from 'react';
 import { useExperience } from '@/store/useExperience';
+import { scramble } from './scramble';
 
 /**
  * Drive an element's style straight from the scroll clock without React
@@ -19,7 +20,13 @@ export function useProgressStyle(ref: RefObject<HTMLElement | null>, fn: (p: num
       el.style.visibility = o < 0.01 ? 'hidden' : 'visible';
       el.style.pointerEvents = o > 0.6 ? 'auto' : 'none';
       // lets CSS run one-shot reveals (headlines rising out of a mask) as an element arrives
+      const was = el.classList.contains('is-in');
       el.classList.toggle('is-in', o > 0.5);
+      // phones: the headline resolves letter by letter as its panel arrives
+      if (!was && o > 0.5 && !el.classList.contains('learn') && matchMedia('(orientation: portrait)').matches) {
+        const h = el.querySelector('h2');
+        if (h) scramble(h as HTMLElement);
+      }
     };
     apply(useExperience.getState().progress);
     return useExperience.subscribe((st, prev) => st.progress !== prev.progress && apply(st.progress));

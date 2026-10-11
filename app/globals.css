@@ -1710,3 +1710,84 @@ html:is([data-mode='cinematic'], [data-mode='mobile'], [data-mode='calm']) .flat
     transform: translateY(3px);
   }
 }
+
+/* ───────────────────────── phones, edolus-style: one idea at a time over a big centred subject ───────────────────────── */
+@media (orientation: portrait) {
+  .science,
+  .science--voyager {
+    max-height: none;
+    padding-top: 22vh;
+    background: linear-gradient(180deg, transparent, rgba(2, 3, 9, 0.55) 30%, rgba(2, 3, 9, 0.88));
+  }
+  .science h2 {
+    font-weight: 600;
+    font-size: clamp(27px, 8.2vw, 36px);
+    line-height: 0.98;
+    letter-spacing: 0.005em;
+    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.75);
+  }
+  /* each step replaces the last */
+  .science__laws {
+    border-top: 0;
+    margin-top: 16px;
+    min-height: 74px;
+  }
+  .science__laws li,
+  .science__life,
+  .facts li,
+  .science__precious {
+    display: none;
+  }
+  .science__laws li.is-current {
+    display: grid;
+    border-bottom: 0;
+    padding: 0;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: stepIn 0.6s var(--ease);
+  }
+  .science__laws li.is-current .science__line {
+    font-size: 15px;
+    line-height: 1.45;
+    color: #e6ebf8;
+  }
+  .science__life.is-current {
+    display: block;
+    animation: stepIn 0.6s var(--ease);
+  }
+  .facts li.is-current {
+    display: flex;
+    font-size: 16px;
+    animation: stepIn 0.6s var(--ease);
+  }
+  .science__precious.is-current {
+    display: block;
+    animation: stepIn 0.6s var(--ease);
+  }
+  /* pinned callouts become a ring around the point, label centred beneath */
+  .callout,
+  .callout--left {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    transform: translate(-50%, -24px);
+  }
+  .callout__mark {
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgba(236, 241, 255, 0.85);
+    border-radius: 50%;
+    font-size: 0;
+    transform: none;
+    box-shadow: 0 0 24px rgba(160, 200, 255, 0.25);
+  }
+}
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+}
