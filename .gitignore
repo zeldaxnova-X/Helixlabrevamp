@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+tools/node_modules
+tools/.cache
+*.tsbuildinfo
+next-env.d.ts
+.env*.local
+.vercel
+
+# local tooling
+.claude/
