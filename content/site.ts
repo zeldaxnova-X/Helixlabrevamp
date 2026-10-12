@@ -123,6 +123,7 @@ export const NARRATION = {
   newborn: 'From the first light came gas, then stars, then galaxies.',
   milkywayFar: 'Our galaxy. A spiral of hundreds of billions of suns.',
   youAreHere: 'One of them is ours.',
+  neptune: 'Sunlight takes four hours to reach Neptune. From here the Sun is just the brightest star.',
   outer: 'Out here a year lasts decades. Uranus takes 84 of ours to go once round the Sun.',
   rocky: 'Past Jupiter, the small rocky worlds begin. Ours is one of them.',
   toVoyager: 'Far from any star, one thing we made is still travelling.',

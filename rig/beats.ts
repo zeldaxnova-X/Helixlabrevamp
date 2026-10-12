@@ -185,7 +185,7 @@ const passOf = (k: keyof typeof PLANETS) => ({ pos: pathAt(PLANETS[k].au * AU), 
  */
 const DIVE_START: Vec3 = [700, 640, -4900];
 const DIVE_LOOK0: Vec3 = [200, -150, -6950];
-const diveKeys = (): Beat['camera'] => {
+const diveKeys = (end: number): Beat['camera'] => {
   const d0 = Math.hypot(DIVE_START[0] - YAH[0], DIVE_START[1] - YAH[1], DIVE_START[2] - YAH[2]);
   const dir0 = nrm([DIVE_START[0] - YAH[0], DIVE_START[1] - YAH[1], DIVE_START[2] - YAH[2]]);
   // the view turns at a constant rate from where the Milky Way shot looks to straight at the marker
@@ -201,7 +201,7 @@ const diveKeys = (): Beat['camera'] => {
     const pos: Vec3 = [YAH[0] + dir[0] * d, YAH[1] + dir[1] * d, YAH[2] + dir[2] * d];
     const v = nrm([view0[0] + (DIVE_DIR[0] - view0[0]) * s, view0[1] + (DIVE_DIR[1] - view0[1]) * s, view0[2] + (DIVE_DIR[2] - view0[2]) * s]);
     keys.push({
-      at: 0.69 * s,
+      at: end * s,
       pos,
       look: [pos[0] + v[0] * d, pos[1] + v[1] * d, pos[2] + v[2] * d],
       fov: 46 - 2 * s,
@@ -345,18 +345,15 @@ export const BEATS: Beat[] = [
   {
     id: 'dive',
     chapter: 'voyage',
-    range: [0.49, 0.57],
+    range: [0.49, 0.5455],
     camera: [
       // turning and closing in, in one smooth move (diveKeys)
-      ...diveKeys(),
+      ...diveKeys(0.9946),
       // same heading, now in the solar system (invisible jump): one star ahead is ours
-      { at: 0.6905, pos: SOLAR_ENTRY.pos, look: SOLAR_ENTRY.look, fov: 44, hold: true, cut: true },
-      // Neptune, small and ahead beside the Sun, then growing
-      { at: 0.825, ...approachOf('neptune'), fov: 42 },
-      { at: 0.95, ...approachOf('neptune', 2.4), fov: 42 },
+      { at: 0.9953, pos: SOLAR_ENTRY.pos, look: SOLAR_ENTRY.look, fov: 44, hold: true, cut: true },
     ],
     narration: NARRATION.youAreHere,
-    narrationWindow: [0.15, 0.42],
+    narrationWindow: [0.216, 0.605],
     hud: { title: 'You are here', line: 'About halfway out, in the Orion Arm' },
     parallax: 0.6,
   },
@@ -365,22 +362,30 @@ export const BEATS: Beat[] = [
   {
     id: 'sun',
     chapter: 'home',
-    range: [0.57, 0.572],
-    camera: [],
+    // held on our star, the one we dived toward, while it is named
+    range: [0.5455, 0.556],
+    camera: [{ at: 0.5, pos: SOLAR_ENTRY.pos, look: SOLAR_ENTRY.look, fov: 44, hold: true }],
     narration: NARRATION.sun,
-    narrationWindow: [-8.5, 2],
+    narrationWindow: [0.08, 0.95],
     hud: { title: 'The Sun', line: '149.6 million km from Earth' },
     parallax: 0.6,
   },
-  // each planet: small far ahead (60 of its radii), growing (15), then right beside us
+  // each planet: small far ahead, growing, then right beside us
   {
     id: 'neptune',
     chapter: 'home',
-    range: [0.572, 0.59],
+    range: [0.556, 0.59],
     camera: [
-      { at: 0.222, ...passOf('neptune'), fov: 42, hold: true },
-      { at: 0.667, ...approachOf('uranus'), fov: 42 },
+      // Neptune, small and ahead, then growing
+      { at: 0.03, ...approachOf('neptune'), fov: 42 },
+      { at: 0.294, ...approachOf('neptune', 2.4), fov: 42 },
+      // park beside Neptune long enough to read it
+      { at: 0.576, ...passOf('neptune'), fov: 42, hold: true },
+      { at: 0.735, ...passOf('neptune'), fov: 42, hold: true },
+      { at: 0.894, ...approachOf('uranus'), fov: 42 },
     ],
+    narration: NARRATION.neptune,
+    narrationWindow: [0.5, 0.92],
     hud: { title: 'Neptune', line: 'The windiest planet: gusts over 2,000 km/h' },
     parallax: 0.6,
   },
@@ -394,7 +399,7 @@ export const BEATS: Beat[] = [
       { at: 0.8, ...approachOf('saturn'), fov: 42 },
     ],
     narration: NARRATION.outer,
-    narrationWindow: [-0.85, 0.1],
+    narrationWindow: [0.1, 0.75],
     hud: { title: 'Uranus', line: 'Tipped on its side, it rolls round the Sun' },
     parallax: 0.6,
   },

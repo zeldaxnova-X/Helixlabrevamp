@@ -49,7 +49,10 @@ export function Callout({
     const d = camera.position.distanceTo(ctr);
     camera.getWorldDirection(fwd);
     const ahead = tmp.copy(ctr).sub(camera.position).normalize().dot(fwd);
-    const o = ahead > 0.2 ? Math.max(0, Math.min(1, visible(readExperience().progress, d))) : 0;
+    // only while the planet itself is on screen
+    const c = tmp.copy(ctr).project(camera);
+    const edge = Math.max(0, Math.min(1, (1.15 - Math.max(Math.abs(c.x), Math.abs(c.y))) / 0.25));
+    const o = ahead > 0.2 ? Math.max(0, Math.min(1, visible(readExperience().progress, d))) * edge : 0;
     node.style.opacity = o.toFixed(3);
     node.style.visibility = o < 0.01 ? 'hidden' : 'visible';
     if (o < 0.01) {
@@ -65,7 +68,6 @@ export function Callout({
     // the planet on screen: centre and radius in pixels
     const W = size.width;
     const H = size.height;
-    const c = tmp.copy(ctr).project(camera);
     const cx = (c.x * 0.5 + 0.5) * W;
     const cy = (-c.y * 0.5 + 0.5) * H;
     right.setFromMatrixColumn(camera.matrixWorld, 0);
@@ -103,8 +105,11 @@ export function Callout({
   });
 
   const { title, line, stats, n, earths, accent } = info;
+  // visibility is ours (above): drei only re-checks its own when the position changes, and
+  // this full-screen layer never moves, so a card mounted behind the camera would stay hidden
   return (
-    <Html fullscreen calculatePosition={() => [size.width / 2, size.height / 2]} zIndexRange={[20, 10]} style={{ pointerEvents: 'none' }}>
+    <group position={around.center as unknown as [number, number, number]}>
+    <Html fullscreen onOcclude={noop} calculatePosition={() => [size.width / 2, size.height / 2]} zIndexRange={[20, 10]} style={{ pointerEvents: 'none' }}>
       <div ref={el} className="readout" style={{ opacity: 0, visibility: 'hidden', ['--accent' as string]: accent ?? '#9cc8ff' }}>
         <svg className="readout__line" width={size.width} height={size.height} aria-hidden>
           <path d="" pathLength={1} />
@@ -134,8 +139,11 @@ export function Callout({
         </div>
       </div>
     </Html>
+    </group>
   );
 }
+
+const noop = () => {};
 
 /** The planet as a disc with Earth beside it at the same scale. */
 function Scale({ earths }: { earths: number }) {

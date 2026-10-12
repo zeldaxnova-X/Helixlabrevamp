@@ -391,9 +391,11 @@ export function Sun() {
     const p = readExperience().progress;
     const o = smooth(local(p, 0.53, 0.54));
     const d = camera.position.distanceTo(sunPos);
-    // glare scales with distance so it reads as a bright star from far away
-    g0.current?.scale.setScalar(Math.max(WORLD.sunRadius * 1.6, d * 0.05));
-    g1.current?.scale.setScalar(Math.max(WORLD.sunRadius * 3, d * 0.16));
+    // glare scales with distance so it reads as a bright star from far away; once it has
+    // been introduced it settles to what it is out here, the brightest star, not a big glare
+    const k = 1 - 0.72 * smooth(local(p, 0.553, 0.564));
+    g0.current?.scale.setScalar(Math.max(WORLD.sunRadius * 1.6, d * 0.05 * k));
+    g1.current?.scale.setScalar(Math.max(WORLD.sunRadius * 3, d * 0.16 * k));
     glow.mats[0]!.opacity = o;
     glow.mats[1]!.opacity = o * 0.3;
   });
