@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { WORLD, passDistance } from '@/rig/beats';
 import { dotTexture } from '@/rig/gpu';
 import { useModel, type ModelKey } from '@/rig/models';
-import { Callout, byDistance } from './parts/Callout';
+import { Callout, byDistance, type Readout } from './parts/Callout';
 import { fitBall } from './parts/fit';
 
 /**
@@ -95,7 +95,7 @@ interface PlanetProps {
   /** Brightness of the solid ring meshes: the real rings of Jupiter, Uranus and Neptune are faint and dark. */
   ringMeshes?: { names: string[]; dim: number };
   /** A pinned label: name and distance from the Sun. */
-  callout?: { title: string; line: string; stats?: readonly (readonly [string, string])[] };
+  callout?: Readout;
 }
 
 function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringMeshes, callout }: PlanetProps) {
@@ -134,8 +134,7 @@ function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringM
   useFrame((s, dt) => {
     if (ref.current) ref.current.rotation.y += dt * spin;
   });
-  // the readout's leader line starts on the planet's upper edge
-  const tag = useMemo(() => [position[0]! + radius * 0.55, position[1]! + radius * 0.6, position[2]!] as const, [position, radius]);
+  const around = useMemo(() => ({ center: position as [number, number, number], radius }), [position, radius]);
   const show = useMemo(() => byDistance(7 * passDistance(radius), 3 * passDistance(radius)), [radius]);
   return (
     <>
@@ -145,18 +144,18 @@ function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringM
           {ring && <points geometry={ring.geo} material={ring.mat} position={offset} frustumCulled={false} />}
         </group>
       </group>
-      {callout && <Callout at={tag} around={{ center: position as [number, number, number], radius }} title={callout.title} line={callout.line} stats={callout.stats} visible={show} />}
+      {callout && <Callout around={around} {...callout} visible={show} />}
     </>
   );
 }
 
 /** Planet readouts: long-established figures (NASA planetary fact sheets). */
 export const STATS = {
-  neptune: { title: 'Neptune', line: 'Ice giant · 8th from the Sun', stats: [['Diameter', '49,244 km'], ['From Sun', '4.5 billion km'], ['Day', '16 h'], ['Year', '165 Earth years'], ['Gravity', '1.14 g']] },
-  uranus: { title: 'Uranus', line: 'Ice giant · 7th from the Sun', stats: [['Diameter', '50,724 km'], ['From Sun', '2.9 billion km'], ['Day', '17 h'], ['Year', '84 Earth years'], ['Gravity', '0.89 g']] },
-  saturn: { title: 'Saturn', line: 'Gas giant · 6th from the Sun', stats: [['Diameter', '116,460 km'], ['From Sun', '1.4 billion km'], ['Day', '10.7 h'], ['Year', '29 Earth years'], ['Gravity', '1.07 g']] },
-  jupiter: { title: 'Jupiter', line: 'Gas giant · 5th from the Sun', stats: [['Diameter', '139,820 km'], ['From Sun', '778 million km'], ['Day', '9.9 h'], ['Year', '12 Earth years'], ['Gravity', '2.53 g']] },
-  mars: { title: 'Mars', line: 'Rocky world · 4th from the Sun', stats: [['Diameter', '6,779 km'], ['From Sun', '228 million km'], ['Day', '24.6 h'], ['Year', '687 Earth days'], ['Gravity', '0.38 g']] },
+  neptune: { n: 8, earths: 3.86, accent: '#5f8dff', title: 'Neptune', line: 'Ice giant · 8th from the Sun', stats: [['Diameter', '49,244 km'], ['From Sun', '4.5 billion km'], ['Day', '16 h'], ['Year', '165 Earth years'], ['Gravity', '1.14 g']] },
+  uranus: { n: 7, earths: 3.98, accent: '#86d9e3', title: 'Uranus', line: 'Ice giant · 7th from the Sun', stats: [['Diameter', '50,724 km'], ['From Sun', '2.9 billion km'], ['Day', '17 h'], ['Year', '84 Earth years'], ['Gravity', '0.89 g']] },
+  saturn: { n: 6, earths: 9.14, accent: '#e3c48a', title: 'Saturn', line: 'Gas giant · 6th from the Sun', stats: [['Diameter', '116,460 km'], ['From Sun', '1.4 billion km'], ['Day', '10.7 h'], ['Year', '29 Earth years'], ['Gravity', '1.07 g']] },
+  jupiter: { n: 5, earths: 10.97, accent: '#d9a27a', title: 'Jupiter', line: 'Gas giant · 5th from the Sun', stats: [['Diameter', '139,820 km'], ['From Sun', '778 million km'], ['Day', '9.9 h'], ['Year', '12 Earth years'], ['Gravity', '2.53 g']] },
+  mars: { n: 4, earths: 0.53, accent: '#d0603a', title: 'Mars', line: 'Rocky world · 4th from the Sun', stats: [['Diameter', '6,779 km'], ['From Sun', '228 million km'], ['Day', '24.6 h'], ['Year', '687 Earth days'], ['Gravity', '0.38 g']] },
 } as const;
 
 const NEPTUNE_RINGS = { url: '/assets/models/neptune-rings.bin', alpha: 0.03 };
@@ -167,16 +166,17 @@ const URANUS_RING_MESH = { names: ['uranus2_B'], dim: 0.22 };
 const JUPITER_RING_MESH = { names: ['jupiter2_B'], dim: 0.12 };
 
 // Jupiter's real rings are almost invisible, hence the very low alpha.
+// spin follows the length of each day (Jupiter 9.9 h fastest, Mars 24.6 h slowest; Uranus turns backwards)
 // axial tilts: Neptune 28°, Uranus 98° (it rolls on its side), Jupiter 3°, Mars 25°
 export function Neptune() {
-  return <Planet model="neptune" body="neptune1_A" radius={WORLD.neptuneRadius} position={WORLD.neptune} tilt={[0.2, 0.4, 0.49]} rings={NEPTUNE_RINGS} ringMeshes={NEPTUNE_RING_MESH} callout={STATS.neptune} />;
+  return <Planet model="neptune" body="neptune1_A" radius={WORLD.neptuneRadius} position={WORLD.neptune} tilt={[0.2, 0.4, 0.49]} spin={0.15} rings={NEPTUNE_RINGS} ringMeshes={NEPTUNE_RING_MESH} callout={STATS.neptune} />;
 }
 export function Uranus() {
-  return <Planet model="uranus" body="uranus1_A" radius={WORLD.uranusRadius} position={WORLD.uranus} tilt={[0.15, 0.3, 1.71]} spin={0.03} rings={URANUS_RINGS} ringMeshes={URANUS_RING_MESH} callout={STATS.uranus} />;
+  return <Planet model="uranus" body="uranus1_A" radius={WORLD.uranusRadius} position={WORLD.uranus} tilt={[0.15, 0.3, 1.71]} spin={-0.14} rings={URANUS_RINGS} ringMeshes={URANUS_RING_MESH} callout={STATS.uranus} />;
 }
 export function Jupiter() {
-  return <Planet model="jupiter" body="jupiter1_A" radius={WORLD.jupiterRadius} position={WORLD.jupiter} tilt={[0.05, 0.6, 0.05]} spin={0.04} rings={JUPITER_RINGS} ringMeshes={JUPITER_RING_MESH} callout={STATS.jupiter} />;
+  return <Planet model="jupiter" body="jupiter1_A" radius={WORLD.jupiterRadius} position={WORLD.jupiter} tilt={[0.05, 0.6, 0.05]} spin={0.25} rings={JUPITER_RINGS} ringMeshes={JUPITER_RING_MESH} callout={STATS.jupiter} />;
 }
 export function Mars() {
-  return <Planet model="mars" body="mars" radius={WORLD.marsRadius} position={WORLD.mars} tilt={[0.1, 0.8, 0.44]} spin={0.03} callout={STATS.mars} />;
+  return <Planet model="mars" body="mars" radius={WORLD.marsRadius} position={WORLD.mars} tilt={[0.1, 0.8, 0.44]} spin={0.1} callout={STATS.mars} />;
 }

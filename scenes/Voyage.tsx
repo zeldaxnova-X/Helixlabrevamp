@@ -12,7 +12,7 @@ import { fit, fitBall, fitRobust } from './parts/fit';
 import { Callout, byDistance } from './parts/Callout';
 import { STATS } from './Planets';
 
-const SATURN_TAG = [WORLD.saturn[0] + WORLD.saturnRadius * 0.55, WORLD.saturn[1] + WORLD.saturnRadius * 0.6, WORLD.saturn[2]] as const;
+const PASS_SATURN = passDistance(WORLD.saturnRadius, 1.55);
 const SATURN_AROUND = { center: WORLD.saturn, radius: WORLD.saturnRadius };
 const saturnTag = byDistance(7 * passDistance(WORLD.saturnRadius, 1.55), 3 * passDistance(WORLD.saturnRadius, 1.55));
 
@@ -156,6 +156,31 @@ export function Voyager() {
 const galaxyOpacity = (p: number) => smooth(local(p, 0.36, 0.4)) * (1 - smooth(local(p, 0.527, 0.543)));
 
 /**
+ * Per-star colour and random value as plain floats, read the same way on every GPU.
+ * Colour keeps a hint of the model's own (mostly real star tones).
+ */
+function bakeStars(g: THREE.BufferGeometry) {
+  if (g.getAttribute('aRnd')) return;
+  const n = g.getAttribute('position').count;
+  const src = g.getAttribute('color') as THREE.BufferAttribute | undefined;
+  const col = new Float32Array(n * 3);
+  const rnd = new Float32Array(n);
+  let seed = 12345;
+  for (let i = 0; i < n; i++) {
+    const r = src ? src.getX(i) : 1;
+    const gg = src ? src.getY(i) : 1;
+    const b = src ? src.getZ(i) : 1;
+    const l = 0.3 * r + 0.59 * gg + 0.11 * b;
+    col[i * 3] = l + (r - l) * 0.35;
+    col[i * 3 + 1] = l + (gg - l) * 0.35;
+    col[i * 3 + 2] = l + (b - l) * 0.35;
+    rnd[i] = (seed = (seed * 16807) % 2147483647) / 2147483647;
+  }
+  g.setAttribute('aCol', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('aRnd', new THREE.BufferAttribute(rnd, 1));
+}
+
+/**
  * The provided spiral-galaxy point cloud as our Milky Way. Two passes over the
  * same points: sharp stars, and a glow pass of large, faint sprites that turns
  * the arms into luminous, nebulous structure. Colour is graded by distance from
@@ -184,14 +209,16 @@ export function MilkyWay() {
   const mats = useDisposable(() => {
     const vert = (glow: boolean) => /* glsl */ `
       uniform vec3 uCentre; uniform float uR; uniform float uPixel; uniform float uProj; uniform float uOpacity; uniform float uTime;
+      // baked on the CPU (see below): some phone GPUs misread the model's 8-bit colours
+      // and break the usual sin() hash, which drew the stars as coloured and dark blobs
+      attribute vec3 aCol; attribute float aRnd;
       varying vec3 vC; varying float vA;
-      float h(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,37.719))) * 43758.5453); }
       void main(){
         vec4 w = modelMatrix * vec4(position, 1.0);
         vec4 mv = viewMatrix * w;
         float d = max(-mv.z, 0.01);
         float r = clamp(length(w.xyz - uCentre) / uR, 0.0, 1.2);
-        float rnd = h(position);
+        float rnd = aRnd;
         vec3 core = vec3(1.0, 0.82, 0.55);
         vec3 arm = vec3(0.78, 0.86, 1.0);
         vec3 rim = vec3(0.55, 0.5, 1.0);
@@ -199,7 +226,7 @@ export function MilkyWay() {
         grade = mix(grade, rim, smoothstep(0.55, 1.0, r));
         ${glow ? '' : 'grade = mix(grade, vec3(1.0, 0.55, 0.75), step(0.985, rnd) * smoothstep(0.2, 0.4, r)); // young pink stars'}
         // the model's vertex colours are vivid RGB: keep a hint of them, mostly real star tones
-        vC = mix(vec3(dot(color.rgb, vec3(0.3, 0.59, 0.11))), color.rgb, 0.35) * grade;
+        vC = clamp(aCol, 0.0, 1.0) * grade;
         ${
           glow
             ? `vA = uOpacity * 0.012 * smoothstep(2.0, 40.0, d) * clamp(d / 900.0, 0.12, 1.0); // dimmer from inside the disc
@@ -216,7 +243,7 @@ export function MilkyWay() {
     const frag = /* glsl */ `
       uniform sampler2D uDot; varying vec3 vC; varying float vA;
       void main(){ gl_FragColor = vec4(vC * 0.75, texture2D(uDot, gl_PointCoord).a * vA); }`;
-    const opts = { vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fragmentShader: frag, uniforms: shared };
+    const opts = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fragmentShader: frag, uniforms: shared };
     const stars = new THREE.ShaderMaterial({ ...opts, vertexShader: vert(false) });
     const glow = new THREE.ShaderMaterial({ ...opts, vertexShader: vert(true) });
     return { stars, glow, dispose: () => (stars.dispose(), glow.dispose()) };
@@ -230,6 +257,7 @@ export function MilkyWay() {
       if ((o as THREE.Points).isPoints && !o.userData.glowPass) pts.push(o as THREE.Points);
     });
     for (const p of pts) {
+      bakeStars(p.geometry);
       p.userData.srcMat ??= p.material;
       p.material = mats.stars;
       p.frustumCulled = false;
@@ -391,21 +419,51 @@ export function Saturn() {
     });
     return fitBall(planet ?? scene, WORLD.saturnRadius);
   }, [scene]);
-  useMemo(() => {
-    // the solid ring disc is just the base layer under the particles: keep it dim
+  const ringMat = useDisposable(() => saturnRingMaterial(), []);
+  const { disc, body } = useMemo(() => {
+    // the ring disc: drawn by its real structure (saturnRingMaterial), under the particles
+    let disc: THREE.Mesh | undefined;
+    let body: THREE.Object3D | undefined;
     scene.traverse((o) => {
-      const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
-      if (m?.name === 'saturn2_B') {
-        m.color.setScalar(0.3);
-        m.opacity = 0.6;
-        m.envMapIntensity = 0;
-      }
+      const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+      if (m?.name === 'saturn2_B') disc = o as THREE.Mesh;
+      if (m?.name === 'saturn1_A') body = o;
     });
+    return { disc, body };
   }, [scene]);
+  useEffect(() => {
+    if (!disc) return;
+    const src = disc.material;
+    disc.material = ringMat;
+    disc.renderOrder = 2;
+    return () => {
+      disc.material = src;
+    };
+  }, [disc, ringMat]);
   const ref = useRef<THREE.Group>(null);
   const rings = useSaturnRings();
-  useFrame((s) => {
-    if (ref.current) ref.current.rotation.y = s.clock.elapsedTime * 0.01;
+  const orbit = useRef<THREE.Group>(null);
+  const axis = useMemo(() => new THREE.Vector3(), []);
+  const sunW = useMemo(() => new THREE.Vector3(...WORLD.sun), []);
+  const tmpL = useMemo(() => new THREE.Vector3(), []);
+  useFrame((s, dt) => {
+    // a Saturn day is 10.7 hours, the fastest spin after Jupiter's: turn the globe on its
+    // own pole (the model's local z), never the group, which would tumble the rings
+    body?.rotateZ(dt * 0.23);
+    // and the ring particles orbit the planet, in the ring plane (its normal is the disc's local z)
+    if (orbit.current && disc) {
+      if (axis.lengthSq() === 0) {
+        scene.updateWorldMatrix(true, true);
+        const q = new THREE.Quaternion().copy(scene.getWorldQuaternion(new THREE.Quaternion())).invert().multiply(disc.getWorldQuaternion(new THREE.Quaternion()));
+        axis.set(0, 0, 1).applyQuaternion(q).normalize();
+      }
+      orbit.current.quaternion.setFromAxisAngle(axis, s.clock.elapsedTime * 0.04);
+    }
+    if (disc) {
+      disc.updateWorldMatrix(true, false);
+      ringMat.uniforms.uSun!.value.copy(disc.worldToLocal(tmpL.copy(sunW))).normalize();
+      ringMat.uniforms.uCam!.value.copy(disc.worldToLocal(tmpL.copy(s.camera.position)));
+    }
   });
   return (
     <>
@@ -413,12 +471,76 @@ export function Saturn() {
     <group position={v3(WORLD.saturn)} rotation={[-0.3, 0.5, 0.6]}>
       <group ref={ref} scale={scale}>
         <primitive object={scene} position={offset} />
-        {rings && <points geometry={rings.geo} material={rings.mat} position={offset} frustumCulled={false} />}
+        {rings && (
+          <group ref={orbit}>
+            <points geometry={rings.geo} material={rings.mat} position={offset} frustumCulled={false} />
+          </group>
+        )}
       </group>
     </group>
-    <Callout at={SATURN_TAG} around={SATURN_AROUND} title={STATS.saturn.title} line={STATS.saturn.line} stats={STATS.saturn.stats} visible={saturnTag} />
+    <Callout around={SATURN_AROUND} {...STATS.saturn} visible={saturnTag} />
     </>
   );
+}
+
+/**
+ * Saturn's rings by their real structure, in planet radii (Rs = 60,268 km): the faint
+ * C ring (1.24 to 1.53), the bright B ring (to 1.95), the Cassini Division (to 2.03),
+ * the A ring (to 2.27) with the Encke (2.214) and Keeler (2.261) gaps, and the thin
+ * F ring (2.33). Thousands of ringlets show as fine striations. Lit by the Sun: Saturn's
+ * shadow falls across them, and from the unlit side they glow faintly through.
+ * The model's disc is the unit circle in its own xy plane, 2.376 Rs across its radius.
+ */
+function saturnRingMaterial() {
+  return new THREE.ShaderMaterial({
+    uniforms: { uSun: { value: new THREE.Vector3(0, 0, 1) }, uCam: { value: new THREE.Vector3(0, 0, 1) } },
+    vertexShader: /* glsl */ `
+      varying vec2 vP;
+      void main(){ vP = position.xy * 2.376; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uSun; uniform vec3 uCam; varying vec2 vP;
+      float hash(float n){ return fract(sin(n) * 43758.5453); }
+      float noise(float x){ float i = floor(x); float f = fract(x); return mix(hash(i), hash(i + 1.0), f * f * (3.0 - 2.0 * f)); }
+      float band(float r, float a, float b, float soft){ return smoothstep(a - soft, a + soft, r) * (1.0 - smoothstep(b - soft, b + soft, r)); }
+      void main(){
+        float r = length(vP);
+        // optical depth by region
+        float d = 0.0;
+        d += band(r, 1.11, 1.235, 0.01) * 0.04;                       // D ring
+        d += band(r, 1.235, 1.525, 0.004) * (0.13 + 0.08 * smoothstep(1.4, 1.52, r)); // C ring
+        d += band(r, 1.525, 1.95, 0.004) * (0.78 + 0.17 * smoothstep(1.55, 1.75, r)); // B ring
+        d += band(r, 1.95, 2.025, 0.004) * 0.06;                      // Cassini Division
+        d += band(r, 2.025, 2.27, 0.003) * (0.55 - 0.12 * smoothstep(2.1, 2.27, r)); // A ring
+        d *= 1.0 - band(r, 2.211, 2.217, 0.0015) * 0.9;              // Encke gap
+        d *= 1.0 - band(r, 2.259, 2.262, 0.001) * 0.8;               // Keeler gap
+        d += band(r, 2.322, 2.33, 0.002) * 0.25;                      // F ring
+        // ringlets: fine radial striations at several scales
+        float s = 0.42 + 0.36 * noise(r * 380.0) + 0.22 * noise(r * 1400.0 + 7.0);
+        s *= 0.7 + 0.3 * noise(r * 70.0 + 3.0);
+        float alpha = clamp(d * s * 1.25, 0.0, 0.95);
+        if (alpha < 0.004) discard;
+        // colour: icy cream in the B ring, warmer tan in A, grey-brown in C
+        vec3 cC = vec3(0.50, 0.45, 0.40);
+        vec3 cB = vec3(0.80, 0.69, 0.53);
+        vec3 cA = vec3(0.70, 0.62, 0.51);
+        vec3 col = mix(cC, cB, smoothstep(1.48, 1.6, r));
+        col = mix(col, cA, smoothstep(1.97, 2.06, r));
+        col *= 0.88 + 0.24 * noise(r * 260.0 + 11.0);
+        // Saturn's shadow: does the ray toward the Sun hit the globe (unit sphere)?
+        vec3 P = vec3(vP, 0.0);
+        float b = dot(P, uSun);
+        float disc = b * b - (dot(P, P) - 1.0);
+        float lit = 1.0 - smoothstep(-0.02, 0.06, disc) * step(b, 0.0);
+        // seen from the side the Sun shines on: reflected light; from the far side: light through
+        float sameSide = step(0.0, uSun.z * uCam.z);
+        float tilt = abs(uSun.z) * 0.7 + 0.3;
+        float light = mix(0.28 * (1.0 - alpha * 0.6), 1.0, sameSide) * tilt * (0.12 + 0.88 * lit);
+        gl_FragColor = vec4(col * light * (0.75 + 0.35 * s), alpha);
+      }`,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
 }
 
 /**
@@ -462,7 +584,8 @@ function useSaturnRings() {
               float ps = uPixel * ${(1.6 * 60 * WORLD.saturnRadius / 14).toFixed(1)} / -mv.z;
               // below a pixel, dim instead of shrinking (keeps total brightness right from afar)
               // thin edge-on rings stack thousands of points per pixel from afar: fade with distance
-              vA = 0.3 * clamp((${((82 * WORLD.saturnRadius) / 14).toFixed(1)} + mv.z) / ${((30 * WORLD.saturnRadius) / 14).toFixed(1)}, 0.0, 1.0); // mv.z = -distance: particles only up close
+              // sparkle over the ring disc at the pass (full to 1.4 pass distances, gone by 2.4)
+              vA = ${(useExperience.getState().tier === 'low' ? 0.13 : 0.055).toFixed(3)} * clamp((${(2.4 * PASS_SATURN).toFixed(1)} + mv.z) / ${PASS_SATURN.toFixed(1)}, 0.0, 1.0); // mv.z = -distance
               gl_PointSize = clamp(ps, 1.0, 2.2 * uPixel);
               gl_Position = projectionMatrix * mv;
             }`,

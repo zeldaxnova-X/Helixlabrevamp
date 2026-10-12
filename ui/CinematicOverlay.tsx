@@ -560,9 +560,10 @@ function ProgressRail() {
   );
 }
 
-/** "Resume, don't restart." */
+/** "Resume, don't restart": a small mission log of where the visitor left off. */
 function ResumePrompt() {
   const [at, setAt] = useState<number | null>(null);
+  const [leaving, setLeaving] = useState(false);
   useEffect(() => {
     const r = readResume();
     if (r && useExperience.getState().progress < 0.02) {
@@ -570,32 +571,64 @@ function ResumePrompt() {
       track('resume_offered', { at: +r.toFixed(3) });
     }
   }, []);
+  const close = useCallback(() => {
+    setLeaving(true);
+    window.setTimeout(() => setAt(null), 450);
+  }, []);
+  // scrolling on means "from the beginning": get out of the way
+  useEffect(() => {
+    if (at === null) return;
+    return useExperience.subscribe((s) => {
+      if (s.progress > 0.03 && s.progress < at - 0.02) close();
+    });
+  }, [at, close]);
   if (at === null) return null;
-  const ch = [...CHAPTERS].reverse().find((c) => at >= c.at - 0.02);
+  const ci = Math.max(0, CHAPTERS.findLastIndex((c) => at >= c.at - 0.02));
+  const ch = CHAPTERS[ci];
+  // the scene they were watching, by its on-screen title
+  const scene = [...BEATS].reverse().find((b) => b.hud && b.range[0] <= at + 0.005)?.hud?.title ?? ch?.label ?? 'The journey';
+  const pct = Math.round(scrollFromStory(at) * 100);
   return (
-    <div className="toast" role="dialog" aria-label="Resume your journey">
-      <p>Welcome back. Pick up at “{ch?.label ?? 'the journey'}”?</p>
-      <div className="toast__row">
+    <div className={`resume ${leaving ? 'is-leaving' : ''}`} role="dialog" aria-label="Continue your journey">
+      <i className="resume__corner resume__corner--tl" aria-hidden />
+      <i className="resume__corner resume__corner--br" aria-hidden />
+      <span className="resume__eyebrow">
+        <span className="resume__pulse" aria-hidden />
+        Journey saved
+      </span>
+      <p className="resume__title">
+        You stopped at <b>{scene}</b>
+      </p>
+      <div className="resume__meter" aria-hidden>
+        <i style={{ transform: `scaleX(${pct / 100})` }} />
+        {CHAPTERS.map((c) => (
+          <span key={c.id} style={{ left: `${scrollFromStory(c.at) * 100}%` }} />
+        ))}
+      </div>
+      <span className="resume__meta">
+        Chapter {String(ci + 1).padStart(2, '0')} of {String(CHAPTERS.length).padStart(2, '0')} · {ch?.label} · {pct}% through
+      </span>
+      <div className="resume__row">
         <button
           type="button"
           className="btn btn--primary"
           onClick={() => {
             track('resume_accepted', { at: +at.toFixed(3) });
             journey.scrollToProgress(at, { immediate: true });
-            setAt(null);
+            close();
           }}
         >
-          Resume
+          Continue
         </button>
         <button
           type="button"
-          className="btn btn--ghost"
+          className="resume__restart"
           onClick={() => {
             clearResume();
-            setAt(null);
+            close();
           }}
         >
-          Start over
+          From the beginning
         </button>
       </div>
     </div>
