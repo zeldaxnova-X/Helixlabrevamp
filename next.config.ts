@@ -7,9 +7,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Media is content-addressed by the asset pipeline; cache hard.
+        // Cached for a day (so a visit, and the next, never re-download), revalidated quietly
+        // after that: asset files keep their names when they are rebuilt, so never 'immutable'.
         source: '/assets/:path*',
-        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
       },
     ];
   },

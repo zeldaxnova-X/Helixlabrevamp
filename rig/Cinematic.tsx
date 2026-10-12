@@ -7,7 +7,7 @@ import { CameraRig } from './CameraRig';
 import { JourneySpacer, ScrollDriver } from './ScrollDriver';
 import { SceneSwitch } from './SceneSwitch';
 import { DebugHud } from './DebugHud';
-import { modelUrl, preloadModel } from './models';
+import { preloadAll } from '@/ui/preload';
 import { BEATS, CUE_POINTS, scienceOf } from './beats';
 import { Dust, SkyDome, Starfield } from '@/scenes/Sky';
 import { SunLight } from '@/scenes/parts/SunLight';
@@ -60,32 +60,14 @@ export default function Cinematic() {
 }
 
 /**
- * Streams the opening behind the loader: fonts, the night-sky footage and the
- * Earth model. Everything else is prefetched by SceneSwitch ahead of the camera.
- * Nothing here can block past the loader's hard cap.
+ * Everything the journey shows on this device is fetched behind the loader
+ * (ui/preload.ts): the opening footage, every model and ring cloud, the sky and
+ * the closing footage. The loader shows real progress and opens when it is all in.
  */
 function Preload() {
   useEffect(() => {
-    const videoReady = new Promise<void>((resolve) => {
-      const v = document.createElement('video');
-      v.muted = true;
-      v.preload = 'auto';
-      v.src = '/assets/video/nightsky-wide.mp4';
-      v.oncanplaythrough = v.onerror = () => resolve();
-      v.load();
-    });
-    const jobs: Promise<unknown>[] = [document.fonts?.ready ?? Promise.resolve(), videoReady, fetch(modelUrl('earth')).then((r) => r.arrayBuffer())];
-    preloadModel('earth');
     audio.preloadActOne();
-    let done = 0;
-    const total = jobs.length;
-    const set = (k: number) => {
-      (window as unknown as { __helixLoad?: number }).__helixLoad = k; // for a listener that mounts late
-      window.dispatchEvent(new CustomEvent('helix:load', { detail: k }));
-    };
-    jobs.forEach((j) => j.catch(() => {}).finally(() => set(++done / total)));
-    const later = window.setTimeout(() => void audio.preloadActTwo(), 6000);
-    return () => window.clearTimeout(later);
+    void preloadAll([document.fonts?.ready ?? Promise.resolve(), audio.preloadActTwo()]);
   }, []);
   return null;
 }

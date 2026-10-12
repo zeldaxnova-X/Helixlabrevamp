@@ -3,54 +3,92 @@
 import { useEffect, useRef, useState } from 'react';
 import { HERO } from '@/content/site';
 import { useExperience } from '@/store/useExperience';
+import { onPreload } from './preload';
 
 /**
- * "HELIX LABS" over black with a meter that fills as Act I streams in.
- * Hard cap: whatever has arrived after 8 s, we go — scenes render their
- * placeholders until the rest lands. A single faint star drifts in on completion.
+ * The way in. The wordmark arrives letter by letter, a real percentage counts
+ * up as the journey downloads (ui/preload.ts) and a status line names what is
+ * coming in. When everything is in, the screen splits horizontally and opens
+ * onto the scene. On a slow connection, "Start now" appears after a few seconds
+ * and the rest keeps streaming behind the journey.
  */
-const HARD_CAP_MS = 8000;
+const MIN_MS = 1400; // never flash
+const OFFER_START_MS = 7000;
+const HARD_CAP_MS = 60000;
 
 export function Loader() {
   const [k, setK] = useState(0);
-  const [phase, setPhase] = useState<'loading' | 'star' | 'gone'>('loading');
+  const [label, setLabel] = useState('Starting');
+  const [phase, setPhase] = useState<'loading' | 'open' | 'gone'>('loading');
+  const [offer, setOffer] = useState(false);
   const setLoaded = useExperience((s) => s.setLoaded);
   const t0 = useRef(performance.now());
+  const opening = useRef(false);
+
+  const open = () => {
+    if (opening.current) return;
+    opening.current = true;
+    const wait = Math.max(0, MIN_MS - (performance.now() - t0.current));
+    window.setTimeout(() => {
+      setPhase('open');
+      setLoaded();
+      window.setTimeout(() => setPhase('gone'), 1300);
+    }, wait);
+  };
 
   useEffect(() => {
-    const on = (e: Event) => setK((x) => Math.max(x, (e as CustomEvent<number>).detail));
-    setK((x) => Math.max(x, (window as unknown as { __helixLoad?: number }).__helixLoad ?? 0));
-    window.addEventListener('helix:load', on);
-    const cap = window.setTimeout(() => setK(1), HARD_CAP_MS);
+    const off = onPreload((v, l) => {
+      setK(v);
+      setLabel(l);
+      if (v >= 1) open();
+    });
+    const a = window.setTimeout(() => setOffer(true), OFFER_START_MS);
+    const b = window.setTimeout(open, HARD_CAP_MS);
     return () => {
-      window.removeEventListener('helix:load', on);
-      window.clearTimeout(cap);
+      off();
+      window.clearTimeout(a);
+      window.clearTimeout(b);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const finishing = useRef(false);
-  useEffect(() => {
-    if (k < 1 || finishing.current) return;
-    finishing.current = true;
-    // Never flash: hold the wordmark at least ~900 ms. These timers must not be
-    // tied to `phase` (changing it would cancel them), so they run once, unguarded.
-    const wait = Math.max(0, 900 - (performance.now() - t0.current));
-    window.setTimeout(() => setPhase('star'), wait);
-    window.setTimeout(() => {
-      setPhase('gone');
-      setLoaded();
-    }, wait + 1100);
-  }, [k, setLoaded]);
-
   if (phase === 'gone') return null;
+  const pct = Math.round(k * 100);
   return (
     <div className={`loader loader--${phase}`} role="status" aria-live="polite">
-      <div className="loader__mark">{HERO.wordmark}</div>
-      <div className="loader__meter" aria-hidden>
-        <i style={{ transform: `scaleX(${k})` }} />
+      <div className="loader__half loader__half--top" />
+      <div className="loader__half loader__half--bottom" />
+      <div className="loader__body">
+        <div className="loader__mark" aria-label={HERO.wordmark}>
+          {[...HERO.wordmark].map((c, i) => (
+            <span key={i} style={{ animationDelay: `${0.08 + i * 0.06}s` }} aria-hidden>
+              {c === ' ' ? ' ' : c}
+            </span>
+          ))}
+        </div>
+        <div className="loader__count" aria-hidden>
+          {String(pct).padStart(3, '0')}
+          <small>%</small>
+        </div>
+        <div className="loader__meter" aria-hidden>
+          <i style={{ transform: `scaleX(${k})` }} />
+        </div>
+        <p className="loader__label" key={label}>
+          {label}
+        </p>
+        <span className="sr-only">{k < 1 ? `Loading ${pct} percent` : 'Ready'}</span>
+        <button type="button" className={`loader__start ${offer && k < 1 ? 'is-on' : ''}`} onClick={open} tabIndex={offer ? 0 : -1}>
+          Start now · the rest streams in
+        </button>
       </div>
-      <span className="sr-only">{k < 1 ? `Loading ${Math.round(k * 100)} percent` : 'Ready'}</span>
-      <span className="loader__star" aria-hidden />
+      <p className="loader__phones" aria-hidden>
+        <svg width="16" height="16" viewBox="0 0 24 24">
+          <path d="M4 14v-2a8 8 0 0 1 16 0v2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <rect x="3" y="14" width="4" height="6" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <rect x="17" y="14" width="4" height="6" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+        Best with headphones
+      </p>
     </div>
   );
 }
