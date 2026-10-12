@@ -1870,7 +1870,7 @@ html:is([data-mode='cinematic'], [data-mode='mobile'], [data-mode='calm']) .flat
   opacity: 1;
   transform: none;
 }
-/* near the right of the screen the readout reaches leftwards */
+/* near the right of the screen the readout reaches left */
 .readout--left .readout__line {
   left: auto;
   right: 0;
@@ -1884,8 +1884,8 @@ html:is([data-mode='cinematic'], [data-mode='mobile'], [data-mode='calm']) .flat
   text-align: right;
   background: linear-gradient(270deg, rgba(10, 30, 60, 0.55), rgba(2, 3, 9, 0.15));
 }
-.readout--left .readout__stats div {
-  flex-direction: row-reverse;
+.readout__stats dt {
+  white-space: nowrap;
 }
 @media (orientation: portrait) {
   .readout__line {

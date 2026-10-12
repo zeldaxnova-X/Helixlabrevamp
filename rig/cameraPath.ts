@@ -23,7 +23,7 @@ interface Key {
   smooth: boolean;
 }
 
-function buildKeys(): Key[] {
+function buildKeys(tall: boolean): Key[] {
   const keys: Key[] = [];
   let lastFov = 40;
   let lastRoll = 0;
@@ -32,7 +32,8 @@ function buildKeys(): Key[] {
     for (const k of beat.camera) {
       lastFov = k.fov ?? lastFov;
       lastRoll = k.roll ?? 0;
-      keys.push({ t: a + k.at * (b - a), pos: k.pos, look: k.look, fov: lastFov, roll: lastRoll, hold: !!k.hold, cut: !!k.cut, smooth: !!k.smooth });
+      const pose = (tall && k.tall) || k;
+      keys.push({ t: a + k.at * (b - a), pos: pose.pos, look: pose.look, fov: lastFov, roll: lastRoll, hold: !!k.hold, cut: !!k.cut, smooth: !!k.smooth });
     }
   }
   keys.sort((x, y) => x.t - y.t);
@@ -42,11 +43,9 @@ function buildKeys(): Key[] {
   return keys;
 }
 
-const KEYS = buildKeys();
-
 type Channel = 'pos' | 'look';
 
-function tangent(i: number, ch: Channel, axis: number): number {
+function tangent(KEYS: Key[], i: number, ch: Channel, axis: number): number {
   const k = KEYS[i]!;
   if (k.hold) return 0;
   const prev = KEYS[i - 1];
@@ -65,11 +64,18 @@ function tangent(i: number, ch: Channel, axis: number): number {
   return Math.max(-cap, Math.min(cap, m));
 }
 
-// Precompute tangents per key / channel / axis.
-const TAN = KEYS.map((_, i) => ({
-  pos: [0, 1, 2].map((a) => tangent(i, 'pos', a)),
-  look: [0, 1, 2].map((a) => tangent(i, 'look', a)),
-}));
+// Two tracks: the authored one, and the same with the portrait poses swapped in.
+// Tangents are precomputed per key / channel / axis.
+function build(tall: boolean) {
+  const keys = buildKeys(tall);
+  const tan = keys.map((_, i) => ({
+    pos: [0, 1, 2].map((a) => tangent(keys, i, 'pos', a)),
+    look: [0, 1, 2].map((a) => tangent(keys, i, 'look', a)),
+  }));
+  return { KEYS: keys, TAN: tan };
+}
+const WIDE = build(false);
+const TALL = build(true);
 
 export interface CameraSample {
   pos: [number, number, number];
@@ -78,7 +84,8 @@ export interface CameraSample {
   roll: number;
 }
 
-export function sampleCamera(p: number, out: CameraSample): CameraSample {
+export function sampleCamera(p: number, out: CameraSample, tall = false): CameraSample {
+  const { KEYS, TAN } = tall ? TALL : WIDE;
   let i = 0;
   while (i < KEYS.length - 2 && p > KEYS[i + 1]!.t) i++;
   const k0 = KEYS[i]!;

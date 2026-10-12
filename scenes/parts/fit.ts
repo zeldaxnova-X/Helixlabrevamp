@@ -34,3 +34,16 @@ export function fitRobust(root: THREE.Object3D, radius: number) {
   const r = d[Math.floor(d.length * 0.85)] ?? 1;
   return { scale: radius / Math.max(1e-6, r), offset: c.multiplyScalar(-1).toArray() as [number, number, number] };
 }
+
+/**
+ * For a ball (planet, moon, star): centre it and make its true radius `radius`.
+ * Uses half the box's largest side, which is the radius of a sphere; the box's own
+ * bounding sphere would be √3 too large and leave the ball ~0.58 of its size.
+ */
+export function fitBall(target: THREE.Object3D, radius: number) {
+  target.updateWorldMatrix(true, true);
+  const box = new THREE.Box3().setFromObject(target);
+  const size = box.getSize(new THREE.Vector3());
+  const r = Math.max(size.x, size.y, size.z) / 2;
+  return { scale: radius / Math.max(1e-6, r), offset: box.getCenter(new THREE.Vector3()).multiplyScalar(-1).toArray() as [number, number, number] };
+}

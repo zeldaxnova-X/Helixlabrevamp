@@ -56,7 +56,7 @@ export function ScrollDriver({ smooth = true }: { smooth?: boolean }) {
     window.scrollTo(0, 0);
     // touch: Lenis drives the swipe too (momentum, same glide as the wheel) so phones feel cinematic
     const touch = matchMedia('(pointer: coarse)').matches;
-    lenis = smooth ? new Lenis({ lerp: 0.085, wheelMultiplier: 0.9, touchMultiplier: touch ? 1.5 : 1.2, syncTouch: touch, syncTouchLerp: 0.075 }) : null;
+    lenis = smooth ? new Lenis({ lerp: 0.085, wheelMultiplier: 0.9, touchMultiplier: touch ? 1.05 : 1.2, syncTouch: touch, syncTouchLerp: 0.05 }) : null;
 
     let last = -1;
     let lastT = performance.now();
@@ -184,7 +184,7 @@ export function ScrollDriver({ smooth = true }: { smooth?: boolean }) {
 
 /** The tall element whose scroll length *is* the timeline. */
 /** Phones: each swipe covers more of the story (a shorter page), so it never feels like a slog. */
-const TOUCH_LENGTH = 0.7;
+const TOUCH_LENGTH = 0.85;
 export function JourneySpacer() {
   const [k] = useState(() => (typeof window !== 'undefined' && matchMedia('(pointer: coarse)').matches ? TOUCH_LENGTH : 1));
   return <div id="journey" aria-hidden style={{ height: `${JOURNEY_SCREENS * k * 100}svh` }} />;

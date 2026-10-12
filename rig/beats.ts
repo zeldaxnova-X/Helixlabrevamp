@@ -34,6 +34,8 @@ export interface CameraKey {
   cut?: boolean;
   /** Part of a densely sampled curve: plain central-difference tangent, no flattening. */
   smooth?: boolean;
+  /** Portrait screens (phones) only: a different pose where the desktop one is too wide to fit. */
+  tall?: { pos: Vec3; look: Vec3 };
 }
 
 export type CueId = 'whoosh' | 'riser' | 'impact' | 'resolve' | 'silence';
@@ -89,23 +91,32 @@ const pathAt = (r: number): Vec3 => {
   const d = nrm([IN_DIR[0] + (EARTH_DIR[0] - IN_DIR[0]) * t, IN_DIR[1] + (EARTH_DIR[1] - IN_DIR[1]) * t, IN_DIR[2] + (EARTH_DIR[2] - IN_DIR[2]) * t]);
   return S(d[0] * r, d[1] * r, d[2] * r);
 };
-/** A planet just beside the path (3 of its radii to one side, a little below) so we pass it close. */
-const besidePath = (au: number, R: number, side: 1 | -1): Vec3 => {
+/** A planet just beside the path (passDistance to one side, a little below) so we pass it close. */
+/**
+ * How close we pass a planet: grows only with the square root of its size, so the
+ * giants fill the frame and the small worlds stay small (Jupiter looks ~4.6× Mars).
+ */
+export const passDistance = (R: number, wide = 1) => 22 * Math.sqrt(R) * wide;
+/** Saturn's rings reach 2.3 radii out: pass it wider so the whole ringed shape fits. */
+const RINGED_WIDE = 1.55;
+const besidePath = (au: number, R: number, side: 1 | -1, wide = 1): Vec3 => {
   const p = pathAt(au * AU);
   const q = pathAt(au * AU - 20);
   const t = nrm([q[0] - p[0], q[1] - p[1], q[2] - p[2]]);
   const lat = nrm([-t[2], 0, t[0]]);
-  return [p[0] + lat[0] * 3 * R * side, p[1] - 0.6 * R, p[2] + lat[2] * 3 * R * side];
+  const d = passDistance(R, wide);
+  return [p[0] + lat[0] * d * side, p[1] - 0.25 * d, p[2] + lat[2] * d * side];
 };
 // true radii relative to Earth (3 units): Neptune 3.88, Uranus 4.0, Saturn 9.45, Jupiter 11.2, Mars 0.53, Moon 0.273
 const PLANETS = {
   neptune: { au: 30.07, R: 11.6, side: 1 as const },
   uranus: { au: 19.19, R: 12, side: -1 as const },
-  saturn: { au: 9.54, R: 28.4, side: 1 as const },
+  saturn: { au: 9.54, R: 28.4, side: 1 as const, wide: RINGED_WIDE },
   jupiter: { au: 5.2, R: 33.6, side: -1 as const },
   mars: { au: 1.524, R: 1.6, side: 1 as const },
 };
-const planetPos = (k: keyof typeof PLANETS) => besidePath(PLANETS[k].au, PLANETS[k].R, PLANETS[k].side);
+const wideOf = (k: keyof typeof PLANETS) => ('wide' in PLANETS[k] ? (PLANETS[k] as { wide: number }).wide : 1);
+const planetPos = (k: keyof typeof PLANETS) => besidePath(PLANETS[k].au, PLANETS[k].R, PLANETS[k].side, wideOf(k));
 
 export const WORLD = {
   earthA: [0, 0, 0] as Vec3,
@@ -163,7 +174,9 @@ const along = (a: Vec3, k: number): Vec3 => [a[0] + DIVE_DIR[0] * k, a[1] + DIVE
  */
 export const SOLAR_ENTRY = { pos: pathAt(ENTRY_R), look: S(0, 0, 0) } as const;
 /** Fly-by keys: the planet small and ahead (60 radii out), then right beside us. */
-const approachOf = (k: keyof typeof PLANETS, radii = 60) => ({ pos: pathAt(PLANETS[k].au * AU + radii * PLANETS[k].R), look: planetPos(k) });
+/** far: how many pass distances ahead (6 = small and far, 2.4 = growing). */
+const approachOf = (k: keyof typeof PLANETS, far = 6) => ({ pos: pathAt(PLANETS[k].au * AU + far * passDistance(PLANETS[k].R, wideOf(k))), look: planetPos(k) });
+/** Closest approach: held, so the camera eases in, lingers beside the planet, and eases out. */
 const passOf = (k: keyof typeof PLANETS) => ({ pos: pathAt(PLANETS[k].au * AU), look: planetPos(k) });
 /**
  * Milky Way → "you are here": one continuous move. The heading turns smoothly
@@ -340,7 +353,7 @@ export const BEATS: Beat[] = [
       { at: 0.6905, pos: SOLAR_ENTRY.pos, look: SOLAR_ENTRY.look, fov: 44, hold: true, cut: true },
       // Neptune, small and ahead beside the Sun, then growing
       { at: 0.825, ...approachOf('neptune'), fov: 42 },
-      { at: 0.95, ...approachOf('neptune', 12), fov: 42 },
+      { at: 0.95, ...approachOf('neptune', 2.4), fov: 42 },
     ],
     narration: NARRATION.youAreHere,
     narrationWindow: [0.15, 0.42],
@@ -365,7 +378,7 @@ export const BEATS: Beat[] = [
     chapter: 'home',
     range: [0.572, 0.59],
     camera: [
-      { at: 0.222, ...passOf('neptune'), fov: 42 },
+      { at: 0.222, ...passOf('neptune'), fov: 42, hold: true },
       { at: 0.667, ...approachOf('uranus'), fov: 42 },
     ],
     hud: { title: 'Neptune', line: 'The windiest planet: gusts over 2,000 km/h' },
@@ -376,8 +389,8 @@ export const BEATS: Beat[] = [
     chapter: 'home',
     range: [0.59, 0.61],
     camera: [
-      { at: 0.1, ...approachOf('uranus', 12), fov: 42 },
-      { at: 0.5, ...passOf('uranus'), fov: 42 },
+      { at: 0.1, ...approachOf('uranus', 2.4), fov: 42 },
+      { at: 0.5, ...passOf('uranus'), fov: 42, hold: true },
       { at: 0.8, ...approachOf('saturn'), fov: 42 },
     ],
     narration: NARRATION.outer,
@@ -390,8 +403,8 @@ export const BEATS: Beat[] = [
     chapter: 'home',
     range: [0.61, 0.636],
     camera: [
-      { at: 0.231, ...approachOf('saturn', 12), fov: 42 },
-      { at: 0.615, ...passOf('saturn'), fov: 42 },
+      { at: 0.231, ...approachOf('saturn', 2.4), fov: 42 },
+      { at: 0.615, ...passOf('saturn'), fov: 42, hold: true },
       { at: 0.846, ...approachOf('jupiter'), fov: 42 },
     ],
     hud: { title: 'Saturn', line: 'Its rings are mostly water ice' },
@@ -403,8 +416,8 @@ export const BEATS: Beat[] = [
     chapter: 'home',
     range: [0.636, 0.66],
     camera: [
-      { at: 0.25, ...approachOf('jupiter', 12), fov: 42 },
-      { at: 0.667, ...passOf('jupiter'), fov: 42 },
+      { at: 0.25, ...approachOf('jupiter', 2.4), fov: 42 },
+      { at: 0.667, ...passOf('jupiter'), fov: 42, hold: true },
       { at: 0.917, ...approachOf('mars'), fov: 42 },
     ],
     hud: { title: 'Jupiter', line: 'Its Great Red Spot is a storm wider than Earth' },
@@ -416,8 +429,8 @@ export const BEATS: Beat[] = [
     range: [0.66, 0.685],
     // the slowest pass: Mars is small, so we come in close and take our time
     camera: [
-      { at: 0.32, ...approachOf('mars', 12), fov: 42 },
-      { at: 0.8, ...passOf('mars'), fov: 42 },
+      { at: 0.32, ...approachOf('mars', 2.4), fov: 42 },
+      { at: 0.8, ...passOf('mars'), fov: 42, hold: true },
     ],
     narration: NARRATION.rocky,
     narrationWindow: [-0.3, 0.25],
@@ -440,7 +453,8 @@ export const BEATS: Beat[] = [
     range: [0.7, 0.75],
     camera: [
       // Earth and the Moon in one frame, Earth clearly the bigger
-      { at: 0.2, pos: At(-6, 9, 72), look: At(12.5, 2.5, 26), fov: 40 },
+      // (side by side is too wide for a phone: there, look past the Moon at Earth, one above the other)
+      { at: 0.2, pos: At(-6, 9, 72), look: At(12.5, 2.5, 26), fov: 40, tall: { pos: At(34, 10, 58), look: At(14, 1.5, 24) } },
       // then one long zoom in on Earth, straight into the first lab's framing
       { at: 1, pos: At(-2.6, 6.6, 34), look: E, fov: 42 },
     ],

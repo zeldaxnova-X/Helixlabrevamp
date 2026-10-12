@@ -4,16 +4,17 @@ import { Html, useAnimations } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState as useStateSafe } from 'react';
 import * as THREE from 'three';
-import { WORLD, envelope, local, smooth } from '@/rig/beats';
+import { WORLD, envelope, local, passDistance, smooth } from '@/rig/beats';
 import { dotTexture, useDisposable } from '@/rig/gpu';
 import { useModel } from '@/rig/models';
 import { readExperience, useExperience } from '@/store/useExperience';
-import { fit, fitRobust } from './parts/fit';
+import { fit, fitBall, fitRobust } from './parts/fit';
 import { Callout, byDistance } from './parts/Callout';
 import { STATS } from './Planets';
 
 const SATURN_TAG = [WORLD.saturn[0] + WORLD.saturnRadius * 0.55, WORLD.saturn[1] + WORLD.saturnRadius * 0.6, WORLD.saturn[2]] as const;
-const saturnTag = byDistance(30 * WORLD.saturnRadius, 16 * WORLD.saturnRadius);
+const SATURN_AROUND = { center: WORLD.saturn, radius: WORLD.saturnRadius };
+const saturnTag = byDistance(7 * passDistance(WORLD.saturnRadius, 1.55), 3 * passDistance(WORLD.saturnRadius, 1.55));
 
 /**
  * THE VOYAGE and the way HOME — every station between the Big Bang and Earth.
@@ -197,7 +198,8 @@ export function MilkyWay() {
         vec3 grade = mix(core, arm, smoothstep(0.05, 0.38, r));
         grade = mix(grade, rim, smoothstep(0.55, 1.0, r));
         ${glow ? '' : 'grade = mix(grade, vec3(1.0, 0.55, 0.75), step(0.985, rnd) * smoothstep(0.2, 0.4, r)); // young pink stars'}
-        vC = color.rgb * grade;
+        // the model's vertex colours are vivid RGB: keep a hint of them, mostly real star tones
+        vC = mix(vec3(dot(color.rgb, vec3(0.3, 0.59, 0.11))), color.rgb, 0.35) * grade;
         ${
           glow
             ? `vA = uOpacity * 0.012 * smoothstep(2.0, 40.0, d) * clamp(d / 900.0, 0.12, 1.0); // dimmer from inside the disc
@@ -205,7 +207,9 @@ export function MilkyWay() {
             : `vA = uOpacity * smoothstep(1.0, 20.0, d) * (0.65 + 0.35 * sin(uTime * (0.6 + rnd) + rnd * 50.0)) * clamp(d / 500.0, 0.4, 1.0);
                float ps = (0.5 + rnd * rnd * 1.6) * uR * 0.0011 * uProj * uPixel / d;
                vA *= clamp(ps / (1.2 * uPixel), 0.25, 1.0);
-               gl_PointSize = clamp(ps, 1.2 * uPixel, 10.0 * uPixel);`
+               // stars right beside the camera would swell into discs: let them slip past instead
+               vA *= smoothstep(30.0, 160.0, d);
+               gl_PointSize = clamp(ps, 1.2 * uPixel, 6.0 * uPixel);`
         }
         gl_Position = projectionMatrix * mv;
       }`;
@@ -385,9 +389,7 @@ export function Saturn() {
       const m = (o as THREE.Mesh).material as THREE.Material | undefined;
       if (m?.name === 'saturn1_A') planet = o;
     });
-    planet?.updateWorldMatrix(true, false);
-    const s = new THREE.Box3().setFromObject(planet ?? scene).getBoundingSphere(new THREE.Sphere());
-    return { scale: WORLD.saturnRadius / s.radius, offset: s.center.multiplyScalar(-1).toArray() as [number, number, number] };
+    return fitBall(planet ?? scene, WORLD.saturnRadius);
   }, [scene]);
   useMemo(() => {
     // the solid ring disc is just the base layer under the particles: keep it dim
@@ -407,14 +409,14 @@ export function Saturn() {
   });
   return (
     <>
-    {/* tilted so its rings open toward us on the way in */}
-    <group position={v3(WORLD.saturn)} rotation={[-0.5, 0.5, 0.466]}>
+    {/* seen a little from above and to the left: rings open, north pole in view */}
+    <group position={v3(WORLD.saturn)} rotation={[-0.3, 0.5, 0.6]}>
       <group ref={ref} scale={scale}>
         <primitive object={scene} position={offset} />
         {rings && <points geometry={rings.geo} material={rings.mat} position={offset} frustumCulled={false} />}
       </group>
     </group>
-    <Callout at={SATURN_TAG} title={STATS.saturn.title} line={STATS.saturn.line} stats={STATS.saturn.stats} visible={saturnTag} />
+    <Callout at={SATURN_TAG} around={SATURN_AROUND} title={STATS.saturn.title} line={STATS.saturn.line} stats={STATS.saturn.stats} visible={saturnTag} />
     </>
   );
 }
@@ -494,9 +496,7 @@ export function MoonModel({ radius = 0.82, position }: { radius?: number; positi
     scene.traverse((o) => {
       if (!body && (o as THREE.Mesh).isMesh) body = o;
     });
-    scene.updateMatrixWorld(true);
-    const sph = new THREE.Box3().setFromObject(body ?? scene).getBoundingSphere(new THREE.Sphere());
-    return { scale: radius / sph.radius, offset: sph.center.multiplyScalar(-1).toArray() as [number, number, number] };
+    return fitBall(body ?? scene, radius);
   }, [scene, radius]);
   useMemo(() => {
     scene.traverse((o) => {

@@ -4,10 +4,11 @@ import { useAnimations } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { WORLD } from '@/rig/beats';
+import { WORLD, passDistance } from '@/rig/beats';
 import { dotTexture } from '@/rig/gpu';
 import { useModel, type ModelKey } from '@/rig/models';
 import { Callout, byDistance } from './parts/Callout';
+import { fitBall } from './parts/fit';
 
 /**
  * The planets we pass on the way in from the edge of the solar system. Ring particles were baked from
@@ -106,9 +107,7 @@ function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringM
       const m = (o as THREE.Mesh).material as THREE.Material | undefined;
       if (m?.name === body) planet = o;
     });
-    planet?.updateWorldMatrix(true, false);
-    const s = new THREE.Box3().setFromObject(planet ?? scene).getBoundingSphere(new THREE.Sphere());
-    return { scale: radius / s.radius, offset: s.center.multiplyScalar(-1).toArray() as [number, number, number] };
+    return fitBall(planet ?? scene, radius);
   }, [scene, body, radius]);
   useEffect(() => {
     // planets are matte: the studio reflections would make them look like plastic
@@ -137,7 +136,7 @@ function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringM
   });
   // the readout's leader line starts on the planet's upper edge
   const tag = useMemo(() => [position[0]! + radius * 0.55, position[1]! + radius * 0.6, position[2]!] as const, [position, radius]);
-  const show = useMemo(() => byDistance(30 * radius, 16 * radius), [radius]);
+  const show = useMemo(() => byDistance(7 * passDistance(radius), 3 * passDistance(radius)), [radius]);
   return (
     <>
       <group position={v3(position)} rotation={tilt}>
@@ -146,18 +145,18 @@ function Planet({ model, body, radius, position, tilt, spin = 0.02, rings, ringM
           {ring && <points geometry={ring.geo} material={ring.mat} position={offset} frustumCulled={false} />}
         </group>
       </group>
-      {callout && <Callout at={tag} title={callout.title} line={callout.line} stats={callout.stats} visible={show} />}
+      {callout && <Callout at={tag} around={{ center: position as [number, number, number], radius }} title={callout.title} line={callout.line} stats={callout.stats} visible={show} />}
     </>
   );
 }
 
 /** Planet readouts: long-established figures (NASA planetary fact sheets). */
 export const STATS = {
-  neptune: { title: 'Neptune', line: 'Ice giant · 8th from the Sun', stats: [['Diameter', '49,244 km'], ['From the Sun', '4.5 billion km'], ['Day', '16 h'], ['Year', '165 Earth years'], ['Gravity', '1.14 g']] },
-  uranus: { title: 'Uranus', line: 'Ice giant · 7th from the Sun', stats: [['Diameter', '50,724 km'], ['From the Sun', '2.9 billion km'], ['Day', '17 h'], ['Year', '84 Earth years'], ['Gravity', '0.89 g']] },
-  saturn: { title: 'Saturn', line: 'Gas giant · 6th from the Sun', stats: [['Diameter', '116,460 km'], ['From the Sun', '1.4 billion km'], ['Day', '10.7 h'], ['Year', '29 Earth years'], ['Gravity', '1.07 g']] },
-  jupiter: { title: 'Jupiter', line: 'Gas giant · 5th from the Sun', stats: [['Diameter', '139,820 km'], ['From the Sun', '778 million km'], ['Day', '9.9 h'], ['Year', '12 Earth years'], ['Gravity', '2.53 g']] },
-  mars: { title: 'Mars', line: 'Rocky world · 4th from the Sun', stats: [['Diameter', '6,779 km'], ['From the Sun', '228 million km'], ['Day', '24.6 h'], ['Year', '687 Earth days'], ['Gravity', '0.38 g']] },
+  neptune: { title: 'Neptune', line: 'Ice giant · 8th from the Sun', stats: [['Diameter', '49,244 km'], ['From Sun', '4.5 billion km'], ['Day', '16 h'], ['Year', '165 Earth years'], ['Gravity', '1.14 g']] },
+  uranus: { title: 'Uranus', line: 'Ice giant · 7th from the Sun', stats: [['Diameter', '50,724 km'], ['From Sun', '2.9 billion km'], ['Day', '17 h'], ['Year', '84 Earth years'], ['Gravity', '0.89 g']] },
+  saturn: { title: 'Saturn', line: 'Gas giant · 6th from the Sun', stats: [['Diameter', '116,460 km'], ['From Sun', '1.4 billion km'], ['Day', '10.7 h'], ['Year', '29 Earth years'], ['Gravity', '1.07 g']] },
+  jupiter: { title: 'Jupiter', line: 'Gas giant · 5th from the Sun', stats: [['Diameter', '139,820 km'], ['From Sun', '778 million km'], ['Day', '9.9 h'], ['Year', '12 Earth years'], ['Gravity', '2.53 g']] },
+  mars: { title: 'Mars', line: 'Rocky world · 4th from the Sun', stats: [['Diameter', '6,779 km'], ['From Sun', '228 million km'], ['Day', '24.6 h'], ['Year', '687 Earth days'], ['Gravity', '0.38 g']] },
 } as const;
 
 const NEPTUNE_RINGS = { url: '/assets/models/neptune-rings.bin', alpha: 0.03 };

@@ -20,6 +20,7 @@ export function CameraRig() {
   const size = useThree((s) => s.size);
   // portrait framing state (smoothed): where the subject sits, and how much to lift it
   const subject = useRef(0);
+  const coarse = useRef(typeof window !== 'undefined' && matchMedia('(pointer: coarse)').matches);
   const lift = useRef(0);
   const sample = useRef<CameraSample>({ pos: [0, 0, 0], look: [0, 0, 0], fov: 40, roll: 0 });
   const roll = useRef(0);
@@ -43,7 +44,7 @@ export function CameraRig() {
       if (e.gamma == null || e.beta == null) return;
       base ??= e.beta;
       const clamp = (x: number) => Math.max(-1, Math.min(1, x));
-      mouse.current.set(clamp(e.gamma / 22), clamp((e.beta - base) / 22));
+      mouse.current.set(clamp(e.gamma / 40) * 0.6, clamp((e.beta - base) / 40) * 0.6);
     };
     if (coarse) window.addEventListener('deviceorientation', onTilt);
     return () => {
@@ -55,7 +56,7 @@ export function CameraRig() {
   useFrame((state, delta) => {
     const dt = Math.min(delta, 1 / 20);
     const { progress, reducedMotion } = readExperience();
-    const s = sampleCamera(progress, sample.current);
+    const s = sampleCamera(progress, sample.current, size.width < size.height * 0.95);
     const beat = beatAt(progress);
 
     if (first.current) {
@@ -65,7 +66,8 @@ export function CameraRig() {
     }
 
     // Lag: k≈5 gives ~200ms of weight on top of Lenis' own smoothing.
-    const k = 1 - Math.exp(-dt * 5);
+    // phones: a heavier follow, so every move glides
+    const k = 1 - Math.exp(-dt * (coarse.current ? 2.6 : 5));
     tmp.current.target.fromArray(s.pos);
     if (pos.current.distanceTo(tmp.current.target) > 8000) {
       pos.current.copy(tmp.current.target);
@@ -90,8 +92,8 @@ export function CameraRig() {
     // phones: a slow, subtle drift (a fraction of a degree) so no frame ever sits still
     if (size.width < size.height * 0.95 && !reducedMotion) {
       const t = state.clock.elapsedTime;
-      camera.rotateY(Math.sin(t * 0.11) * 0.011);
-      camera.rotateX(Math.sin(t * 0.083 + 1.3) * 0.007);
+      camera.rotateY(Math.sin(t * 0.11) * 0.005);
+      camera.rotateX(Math.sin(t * 0.083 + 1.3) * 0.0035);
     }
     // bank (used to line the galaxy up with the flight footage)
     roll.current += (s.roll - roll.current) * k;

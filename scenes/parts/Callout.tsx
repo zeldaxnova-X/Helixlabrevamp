@@ -18,6 +18,7 @@ export function Callout({
   line,
   stats,
   visible,
+  around,
 }: {
   at: readonly [number, number, number];
   title: string;
@@ -25,7 +26,13 @@ export function Callout({
   stats?: readonly (readonly [string, string])[];
   /** 0..1 opacity from the scroll clock and the camera's distance to the point. */
   visible: (p: number, d: number) => number;
+  /** Pin to a sphere instead: the point follows its upper edge as seen from the camera. */
+  around?: { center: readonly [number, number, number]; radius: number };
 }) {
+  const holder = useRef<THREE.Group>(null);
+  const ctr = useMemo(() => (around ? new THREE.Vector3(...around.center) : null), [around]);
+  const right = useMemo(() => new THREE.Vector3(), []);
+  const up = useMemo(() => new THREE.Vector3(), []);
   const el = useRef<HTMLDivElement>(null);
   const pos = useMemo(() => new THREE.Vector3(...at), [at]);
   const tmp = useMemo(() => new THREE.Vector3(), []);
@@ -33,6 +40,13 @@ export function Callout({
   useFrame(({ camera }) => {
     const node = el.current;
     if (!node) return;
+    if (ctr && around && holder.current) {
+      // the upper-right edge of the sphere on screen, whatever the camera's heading
+      right.setFromMatrixColumn(camera.matrixWorld, 0);
+      up.setFromMatrixColumn(camera.matrixWorld, 1);
+      pos.copy(ctr).addScaledVector(right, around.radius * 0.5).addScaledVector(up, around.radius * 0.62);
+      holder.current.position.copy(pos);
+    }
     const d = camera.position.distanceTo(pos);
     camera.getWorldDirection(fwd);
     const ahead = tmp.copy(pos).sub(camera.position).normalize().dot(fwd);
@@ -52,14 +66,20 @@ export function Callout({
       const prev = parseFloat(box.style.translate || '0');
       const r = box.getBoundingClientRect();
       const left = r.left - prev;
-      const right = r.right - prev;
+      const rightEdge = r.right - prev;
       const W = window.innerWidth;
-      const shift = left < 10 ? 10 - left : right > W - 10 ? W - 10 - right : 0;
-      if (Math.abs(shift - prev) > 0.5) box.style.translate = shift.toFixed(1) + 'px 0';
+      const shift = left < 10 ? 10 - left : rightEdge > W - 10 ? W - 10 - rightEdge : 0;
+      // and below the scene caption at the top of the screen
+      const prevY = parseFloat((box.style.translate || '0 0').split(' ')[1] || '0');
+      const top = r.top - prevY;
+      const minTop = window.innerWidth < window.innerHeight ? 150 : 90;
+      const shiftY = top < minTop ? minTop - top : 0;
+      if (Math.abs(shift - prev) > 0.5 || Math.abs(shiftY - prevY) > 0.5) box.style.translate = shift.toFixed(1) + 'px ' + shiftY.toFixed(1) + 'px';
     }
   });
   return (
-    <Html position={at as unknown as [number, number, number]} zIndexRange={[20, 10]} style={{ pointerEvents: 'none' }}>
+    <group ref={holder} position={at as unknown as [number, number, number]}>
+    <Html zIndexRange={[20, 10]} style={{ pointerEvents: 'none' }}>
       <div ref={el} className="readout" style={{ opacity: 0, visibility: 'hidden' }}>
         <span className="readout__dot" aria-hidden />
         <svg className="readout__line" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden>
@@ -81,6 +101,7 @@ export function Callout({
         </div>
       </div>
     </Html>
+    </group>
   );
 }
 
