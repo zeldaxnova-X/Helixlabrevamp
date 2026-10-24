@@ -3,26 +3,28 @@
  * experience, the mobile sequence and the flat SSR page can never disagree.
  */
 
-const APP = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.helixlabs.pro';
-
 export const URLS = {
-  app: APP,
-  signUp: process.env.NEXT_PUBLIC_SIGNUP_URL ?? `${APP}/sign-up`,
-  signIn: `${APP}/sign-in`,
-  dashboard: process.env.NEXT_PUBLIC_DASHBOARD_URL ?? `${APP}/`,
   site: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.helixlabs.pro',
 } as const;
 
-/** Sign-up link tagged with where on the page it was clicked (for funnel analysis). */
-export function signUpHref(source: string, extra?: Record<string, string>) {
-  const u = new URL(URLS.signUp);
-  u.searchParams.set('from', `landing:${source}`);
-  for (const [k, v] of Object.entries(extra ?? {})) u.searchParams.set(k, v);
-  return u.toString();
-}
+/**
+ * Where every call to action goes.
+ *
+ * This is deliberately a page of our own and nothing else. The old build's
+ * sign-up at app.helixlabs.pro is open: anyone can make an account with any
+ * password and walk straight into the labs, because nothing behind it checks
+ * for a subscription. Until the new build has its own sign-up with a paid
+ * entitlement, no button here may hand a visitor an account. There is no
+ * environment override on purpose, so a stale variable cannot quietly point
+ * these buttons back at the old sign-up.
+ */
+const ENTRY = '/early-access';
 
-/** Name of the cross-subdomain session cookie set by app.helixlabs.pro. */
-export const SESSION_COOKIE = 'helix_session';
+/** Entry link tagged with where on the page it was clicked (for funnel analysis). */
+export function signUpHref(source: string, extra?: Record<string, string>) {
+  const q = new URLSearchParams({ from: `landing:${source}`, ...extra });
+  return `${ENTRY}?${q}`;
+}
 
 export const HERO = {
   wordmark: 'HELIX LABS',

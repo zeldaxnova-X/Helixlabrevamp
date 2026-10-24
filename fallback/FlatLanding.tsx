@@ -22,7 +22,6 @@ export function FlatLanding() {
             <a href="#rules">The rules</a>
             <a href="#labs">Labs</a>
             <a href="#schools">Schools</a>
-            <a href={URLS.signIn}>Sign in</a>
             <a className="btn btn--primary" href={signUpHref('flat-nav')}>
               {HERO.cta}
             </a>

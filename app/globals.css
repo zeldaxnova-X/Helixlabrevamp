@@ -2136,3 +2136,40 @@ html:is([data-mode='cinematic'], [data-mode='mobile'], [data-mode='calm']) .flat
     filter: blur(6px);
   }
 }
+
+/* ───────────────────────── early access: where the CTAs land before launch ───────────────────────── */
+.gate-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+  background: radial-gradient(120% 90% at 50% 0%, #0b1733 0%, var(--ink) 62%);
+}
+.gate-page__body {
+  width: min(560px, 100%);
+  text-align: center;
+}
+.gate-page__eyebrow {
+  display: block;
+  font: 500 11px/1 var(--sans);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+.gate-page__title {
+  margin: 22px 0 0;
+  font: 300 clamp(28px, 6vw, 44px)/1.12 var(--sans);
+  letter-spacing: 0.01em;
+}
+.gate-page__lede {
+  margin: 18px auto 0;
+  max-width: 44ch;
+  font: 300 16px/1.6 var(--sans);
+  color: var(--text);
+}
+.gate-page__note {
+  margin: 14px auto 30px;
+  max-width: 44ch;
+  font: 400 13px/1.6 var(--sans);
+  color: var(--dim);
+}
