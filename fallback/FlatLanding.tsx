@@ -1,4 +1,4 @@
-import { CREDITS, EARTH_FACTS, HERO, LABS, LEARN, SCHOOLS, SCIENCES, signUpHref, URLS } from '@/content/site';
+import { CREDITS, EARTH_FACTS, HERO, LABS, LEARN, liteHref, SCHOOLS, SCIENCES, signUpHref, URLS } from '@/content/site';
 import { ModeSwitcher } from './ModeSwitcher';
 
 /**
@@ -22,6 +22,9 @@ export function FlatLanding() {
             <a href="#rules">The rules</a>
             <a href="#labs">Labs</a>
             <a href="#schools">Schools</a>
+            {/* this page is what a visitor with no WebGL gets, so the lite
+                edition — which is built for exactly that — belongs here */}
+            <a href={liteHref('flat-nav')}>Lite version</a>
             <a className="btn btn--primary" href={signUpHref('flat-nav')}>
               {HERO.cta}
             </a>
@@ -141,6 +144,9 @@ export function FlatLanding() {
               <span>{HERO.wordmark}</span>
             </a>
             <ModeSwitcher />
+            <a className="flat-footer__edition" href={liteHref('flat-footer')}>
+              Lite edition ↗
+            </a>
           </div>
           <ul className="flat-footer__credits">
             {CREDITS.map((c) => (

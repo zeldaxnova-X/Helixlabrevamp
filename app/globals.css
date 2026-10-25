@@ -1492,6 +1492,38 @@ html:is([data-mode='cinematic'], [data-mode='mobile'], [data-mode='calm']) .flat
     display: none;
   }
 }
+/* The same offer at the foot of the flat page. The mode switcher beside it
+   changes how this build renders; this one leaves for the other build. */
+.flat-footer__edition {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  border: 1px solid var(--line-2);
+  padding: 10px 14px;
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
+}
+.flat-footer__edition:hover {
+  color: var(--text);
+  border-color: var(--line-2);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* The way across to the lite edition. Set apart from the other ghost buttons
+   by a hairline, because it leaves this build rather than changing it. */
+.topbar__lite {
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+  margin-left: 4px;
+}
+@media (max-width: 860px) {
+  /* on a small screen the bar belongs to the journey; the lite edition is
+     still offered in the footer and by the mode switcher */
+  .topbar__lite {
+    display: none;
+  }
+}
+
 @media (max-width: 520px) {
   .topbar__soundlabel,
   .topbar__skip {

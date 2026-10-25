@@ -8,6 +8,22 @@ export const URLS = {
 } as const;
 
 /**
+ * The lite edition, on its own domain.
+ *
+ * It tells the same story with no WebGL, no models and no audio, for a weak
+ * device or a thin connection. The two builds have to be able to walk into
+ * each other's domain, so this is the way out of the cinematic one; the way
+ * back is a `?mode=cinematic` link on that side, which fallback/capability.ts
+ * reads before first paint.
+ */
+export const LITE_URL = process.env.NEXT_PUBLIC_LITE_URL ?? 'https://helixlabs-lite.vercel.app';
+
+/** Across to the lite edition, tagged with where the visitor left from. */
+export function liteHref(source: string) {
+  return `${LITE_URL}/?from=${encodeURIComponent(`full:${source}`)}`;
+}
+
+/**
  * Where every call to action goes.
  *
  * This is deliberately a page of our own and nothing else. The old build's

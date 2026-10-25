@@ -26,6 +26,8 @@ export type EventName =
   | 'autoplay_on'
   | 'lab_interact'
   | 'signup_click'
+  /** Left for the other build (today: this one → the lite edition). */
+  | 'edition_switch'
   | 'perf_downgrade';
 
 type Props = Record<string, string | number | boolean | null | undefined>;

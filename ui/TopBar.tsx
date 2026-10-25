@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { HERO, signUpHref } from '@/content/site';
+import { HERO, liteHref, signUpHref } from '@/content/site';
 import { audio } from '@/audio/engine';
 import { track } from '@/analytics/track';
 import { useExperience } from '@/store/useExperience';
@@ -70,6 +70,15 @@ export function TopBar({ onSkip, showSkip, showAutoplay }: { onSkip?: () => void
           </span>
           <span className="topbar__soundlabel">{muted ? 'Sound' : 'On'}</span>
         </button>
+        {/* the way out to the lite edition — same story, no GPU */}
+        <a
+          className="topbar__ghost topbar__lite"
+          href={liteHref('topbar')}
+          onClick={() => track('edition_switch', { to: 'lite', source: 'topbar' })}
+          title="The same journey with no 3D — lighter on your device and your data"
+        >
+          Lite version
+        </a>
         <a className="btn btn--primary topbar__cta" href={signUpHref('topbar')} onClick={() => track('signup_click', { source: 'topbar' })}>
           {HERO.cta}
         </a>
