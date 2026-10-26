@@ -8,15 +8,21 @@ export const URLS = {
 } as const;
 
 /**
- * The lite edition, on its own domain.
+ * The lite edition.
  *
  * It tells the same story with no WebGL, no models and no audio, for a weak
  * device or a thin connection. The two builds have to be able to walk into
  * each other's domain, so this is the way out of the cinematic one; the way
  * back is a `?mode=cinematic` link on that side, which fallback/capability.ts
  * reads before first paint.
+ *
+ * It is deliberately the same address as `URLS.site`: www.helixlabs.pro serves
+ * the lite build, which makes it the front door and the canonical page, while
+ * this build sits on a vercel.app address and names it as its canonical. The
+ * two constants are kept apart all the same, so that moving either edition to
+ * a domain of its own stays a one-line change.
  */
-export const LITE_URL = process.env.NEXT_PUBLIC_LITE_URL ?? 'https://helixlabs-lite.vercel.app';
+export const LITE_URL = process.env.NEXT_PUBLIC_LITE_URL ?? 'https://www.helixlabs.pro';
 
 /** Across to the lite edition, tagged with where the visitor left from. */
 export function liteHref(source: string) {
