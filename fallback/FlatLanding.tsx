@@ -153,7 +153,14 @@ export function FlatLanding() {
               <li key={c}>{c}</li>
             ))}
           </ul>
-          <p className="flat-footer__fine">© {new Date().getFullYear()} Helix Labs · helixlabs.pro</p>
+          {/*
+            No year: this page is prerendered, so `new Date()` would freeze at
+            whatever day the site was last built and quietly go stale from the
+            next January. Copyright does not depend on a date being shown, and
+            reading one on the client would mean shipping JavaScript, and
+            trusting the visitor's clock, to print it.
+          */}
+          <p className="flat-footer__fine">© Helix Labs · helixlabs.pro</p>
         </footer>
       </div>
     </div>
