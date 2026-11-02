@@ -8,6 +8,17 @@ export const URLS = {
 } as const;
 
 /**
+ * The registered business, for the footer.
+ *
+ * Kept identical to the line the lite edition prints, because the two
+ * editions are one company and a visitor may well see both. The policies
+ * themselves live on the lite build, which is the front door; this edition
+ * carries the identification so that no page takes an interest in money
+ * without saying who is behind it.
+ */
+export const ENTITY_LINE = 'ICAP · GSTIN 27ACRPF6244Q1ZU · Mumbai, Maharashtra, India';
+
+/**
  * The lite edition.
  *
  * It tells the same story with no WebGL, no models and no audio, for a weak

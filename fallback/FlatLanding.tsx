@@ -1,4 +1,4 @@
-import { CREDITS, EARTH_FACTS, HERO, LABS, LEARN, liteHref, SCHOOLS, SCIENCES, signUpHref, URLS } from '@/content/site';
+import { CREDITS, EARTH_FACTS, ENTITY_LINE, HERO, LABS, LEARN, liteHref, SCHOOLS, SCIENCES, signUpHref, URLS } from '@/content/site';
 import { ModeSwitcher } from './ModeSwitcher';
 
 /**
@@ -160,7 +160,11 @@ export function FlatLanding() {
             reading one on the client would mean shipping JavaScript, and
             trusting the visitor's clock, to print it.
           */}
-          <p className="flat-footer__fine">© Helix Labs · helixlabs.pro</p>
+          <p className="flat-footer__fine">
+            © Helix Labs · helixlabs.pro
+            <br />
+            {ENTITY_LINE}
+          </p>
         </footer>
       </div>
     </div>
