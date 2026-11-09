@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { EARTH_FACTS, HERO, LABS, LEARN, NARRATION, SCIENCES, signUpHref } from '@/content/site';
+import { EARTH_FACTS, HERO, LABS, LEARN, NARRATION, SCIENCES } from '@/content/site';
+import { checkoutHref } from '@/lib/links';
 import { TopBar } from '@/ui/TopBar';
 import { audio } from '@/audio/engine';
 import { track } from '@/analytics/track';
@@ -91,7 +92,7 @@ export default function MobileExperience({ calm }: { calm: boolean }) {
           <p className="hud-label">A journey through the rules of the universe</p>
           <h2 className="display display--xl">{HERO.wordmark}</h2>
           <p className="m-hero__headline">{HERO.headline}</p>
-          <a className="btn btn--primary btn--lg" href={signUpHref('m-hero')} onClick={() => track('signup_click', { source: 'm-hero' })}>
+          <a className="btn btn--primary btn--lg" href={checkoutHref('m-hero')} onClick={() => track('signup_click', { source: 'm-hero' })}>
             {HERO.cta}
           </a>
         </div>
@@ -156,7 +157,7 @@ export default function MobileExperience({ calm }: { calm: boolean }) {
           <p className="hud-label">{LEARN.eyebrow}</p>
           <h2 className="display display--m">{LEARN.title}</h2>
           <p className="m-hero__headline">{LEARN.body}</p>
-          <a className="btn btn--primary btn--xl" href={signUpHref('m-final')} onClick={() => track('signup_click', { source: 'm-final' })} data-beat="enter">
+          <a className="btn btn--primary btn--xl" href={checkoutHref('m-final')} onClick={() => track('signup_click', { source: 'm-final' })} data-beat="enter">
             {LEARN.cta}
           </a>
           <ul className="learn__labs">

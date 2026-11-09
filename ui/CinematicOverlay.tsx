@@ -5,7 +5,8 @@ import { BEATS, CHAPTERS, SKIP_TO, beatById, envelope, local, smooth, type Beat,
 import { journey, readResume, clearResume } from '@/rig/ScrollDriver';
 import { useProgressStyle } from './useProgressStyle';
 import { TopBar } from './TopBar';
-import { EARTH_FACTS, HERO, LABS, LEARN, LEARN_MONTAGE, PRECIOUS, SCIENCES, VOYAGER, signUpHref, type Science } from '@/content/site';
+import { EARTH_FACTS, HERO, LABS, LEARN, LEARN_MONTAGE, PRECIOUS, SCIENCES, VOYAGER, type Science } from '@/content/site';
+import { checkoutHref } from '@/lib/links';
 import { useExperience } from '@/store/useExperience';
 import { track } from '@/analytics/track';
 import { audio } from '@/audio/engine';
@@ -163,7 +164,7 @@ function Hero() {
       <h2 className="display display--l">{HERO.headline}</h2>
       <p className="cine-hero__sub">{HERO.subline}</p>
       <div className="cine-hero__ctas">
-        <a className="btn btn--primary btn--lg btn--bracket" href={signUpHref('hero')} onClick={() => track('signup_click', { source: 'hero' })}>
+        <a className="btn btn--primary btn--lg btn--bracket" href={checkoutHref('hero')} onClick={() => track('signup_click', { source: 'hero' })}>
           {HERO.cta}
         </a>
         <button type="button" className="btn btn--ghost btn--lg" onClick={() => journey.scrollToProgress(0.15, { duration: 3 })}>
@@ -285,7 +286,7 @@ function SciencePanel({ science }: { science: Science }) {
         <span>Why it keeps us alive</span>
         {science.life}
       </p>
-      <a className="science__link" href={signUpHref(`science-${science.id}`)} onClick={() => track('signup_click', { source: `science-${science.id}` })}>
+      <a className="science__link" href={checkoutHref(`science-${science.id}`)} onClick={() => track('signup_click', { source: `science-${science.id}` })}>
         Enter {science.lab} <span aria-hidden>→</span>
       </a>
     </section>
@@ -437,7 +438,7 @@ function LearnMore() {
         </h2>
         <p className="learn__body">{LEARN.body}</p>
         <div className="learn__ctas">
-          <a className="btn btn--primary btn--xl" href={signUpHref('learn')} onClick={() => track('signup_click', { source: 'learn' })}>
+          <a className="btn btn--primary btn--xl" href={checkoutHref('learn')} onClick={() => track('signup_click', { source: 'learn' })}>
             {LEARN.cta}
           </a>
           <a className="btn btn--ghost btn--lg" href="#labs">

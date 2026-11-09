@@ -16,10 +16,11 @@ import type { MetadataRoute } from 'next';
  * useful thing to hand anybody. The canonical site has its own.
  */
 export default function robots(): MetadataRoute.Robots {
-  // Two things nobody should find in a search result: the holding page that
-  // grants nothing, and /preview, which is a dev-only model inspector. Both
-  // belong in the same group as the wildcard allow — two separate
-  // "User-Agent: *" blocks is ambiguous, and crawlers merge them differently.
+  // Two pages that belong to this domain rather than to the index: the
+  // schools contact page, whose content the canonical site already covers,
+  // and /preview, which is a dev-only model inspector. Both belong in the
+  // same group as the wildcard allow — two separate "User-Agent: *" blocks
+  // is ambiguous, and crawlers merge them differently.
   const closed = ['/early-access', '/preview'];
 
   return {

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { HERO, liteHref, signUpHref } from '@/content/site';
+import { HERO } from '@/content/site';
+import { checkoutHref, liteHref } from '@/lib/links';
 import { audio } from '@/audio/engine';
 import { track } from '@/analytics/track';
 import { useExperience } from '@/store/useExperience';
@@ -79,7 +80,7 @@ export function TopBar({ onSkip, showSkip, showAutoplay }: { onSkip?: () => void
         >
           Lite version
         </a>
-        <a className="btn btn--primary topbar__cta" href={signUpHref('topbar')} onClick={() => track('signup_click', { source: 'topbar' })}>
+        <a className="btn btn--primary topbar__cta" href={checkoutHref('topbar')} onClick={() => track('signup_click', { source: 'topbar' })}>
           {HERO.cta}
         </a>
       </div>

@@ -1,4 +1,7 @@
-import { CREDITS, EARTH_FACTS, ENTITY_LINE, HERO, LABS, LEARN, liteHref, SCHOOLS, SCIENCES, signUpHref, URLS } from '@/content/site';
+import { CREDITS, EARTH_FACTS, ENTITY_LINE, HERO, LABS, LEARN, SCHOOLS, SCIENCES } from '@/content/site';
+import { INCLUDED, PRICING, rupees } from '@/content/commerce';
+import { checkoutHref, labsHref, liteHref, schoolsHref, signInHref } from '@/lib/links';
+import { PaymentTrust } from '@/ui/PaymentTrust';
 import { ModeSwitcher } from './ModeSwitcher';
 
 /**
@@ -21,11 +24,12 @@ export function FlatLanding() {
           <nav aria-label="Main">
             <a href="#rules">The rules</a>
             <a href="#labs">Labs</a>
+            <a href="#pricing">Pricing</a>
             <a href="#schools">Schools</a>
             {/* this page is what a visitor with no WebGL gets, so the lite
                 edition — which is built for exactly that — belongs here */}
             <a href={liteHref('flat-nav')}>Lite version</a>
-            <a className="btn btn--primary" href={signUpHref('flat-nav')}>
+            <a className="btn btn--primary" href={checkoutHref('flat-nav')}>
               {HERO.cta}
             </a>
           </nav>
@@ -40,7 +44,7 @@ export function FlatLanding() {
             </h1>
             <p className="flat-hero__sub">{HERO.subline}</p>
             <div className="flat-hero__ctas">
-              <a className="btn btn--primary btn--lg" href={signUpHref('flat-hero')}>
+              <a className="btn btn--primary btn--lg" href={checkoutHref('flat-hero')}>
                 {HERO.cta}
               </a>
               <a className="btn btn--ghost btn--lg" href="#rules">
@@ -104,7 +108,7 @@ export function FlatLanding() {
                     <li key={m}>{m}</li>
                   ))}
                 </ul>
-                <a href={signUpHref('flat-card', { lab: l.id })} className="flat-card__link">
+                <a href={labsHref('flat-card', { lab: l.id })} className="flat-card__link">
                   Enter {l.name} →
                 </a>
               </article>
@@ -120,10 +124,51 @@ export function FlatLanding() {
               {LEARN.title}
             </h2>
             <p className="flat-lede">{LEARN.body}</p>
-            <a className="btn btn--primary btn--xl" href={signUpHref('flat-learn')}>
+            <a className="btn btn--primary btn--xl" href={checkoutHref('flat-learn')}>
               {LEARN.cta}
             </a>
           </div>
+        </section>
+
+        {/* ───────────────────────── pricing ─────────────────────────
+            At the bottom, because this build's job is the story and the
+            story has to be told before a price means anything. The figure
+            comes from shared/plan.ts, which the LMS reads to decide what to
+            charge, so the number here and the number in the payment window
+            are the same number. The button goes to the LMS: sign in, then
+            pay, then the labs. */}
+        <section id="pricing" className="flat-section flat-pricing" aria-labelledby="pricing-h">
+          <p className="hud-label hud-label--gold">{PRICING.eyebrow}</p>
+          <h2 id="pricing-h" className="display display--m">
+            {PRICING.title}
+          </h2>
+          <p className="flat-lede">{PRICING.lede}</p>
+
+          <div className="flat-plan">
+            <div className="flat-plan__head">
+              <p className="flat-plan__price">
+                <span className="flat-plan__cur">₹</span>
+                {rupees(PRICING.price)}
+                <span className="flat-plan__per">{PRICING.per}</span>
+              </p>
+              <a className="btn btn--primary btn--lg" href={checkoutHref('pricing')}>
+                {PRICING.cta} — ₹{rupees(PRICING.price)}
+              </a>
+            </div>
+            <p className="flat-plan__term">{PRICING.term}</p>
+            <ul className="flat-plan__included">
+              {INCLUDED.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          </div>
+
+          <PaymentTrust className="flat-trust" />
+
+          <p className="flat-plan__note">
+            {PRICING.note} <a href={liteHref('pricing-detail')}>{PRICING.secondary}</a> · Already have an account?{' '}
+            <a href={signInHref('pricing')}>Sign in</a>
+          </p>
         </section>
 
         <section id="schools" className="flat-section flat-schools" aria-labelledby="schools-h">
@@ -133,7 +178,7 @@ export function FlatLanding() {
             </h2>
             <p>{SCHOOLS.blurb}</p>
           </div>
-          <a className="btn btn--ghost btn--lg" href={signUpHref('schools', { intent: 'school' })}>
+          <a className="btn btn--ghost btn--lg" href={schoolsHref('flat-schools')}>
             {SCHOOLS.cta}
           </a>
         </section>

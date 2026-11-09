@@ -3,10 +3,6 @@
  * experience, the mobile sequence and the flat SSR page can never disagree.
  */
 
-export const URLS = {
-  site: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.helixlabs.pro',
-} as const;
-
 /**
  * The registered business, for the footer.
  *
@@ -19,45 +15,13 @@ export const URLS = {
 export const ENTITY_LINE = 'ICAP · GSTIN 27ACRPF6244Q1ZU · Mumbai, Maharashtra, India';
 
 /**
- * The lite edition.
- *
- * It tells the same story with no WebGL, no models and no audio, for a weak
- * device or a thin connection. The two builds have to be able to walk into
- * each other's domain, so this is the way out of the cinematic one; the way
- * back is a `?mode=cinematic` link on that side, which fallback/capability.ts
- * reads before first paint.
- *
- * It is deliberately the same address as `URLS.site`: www.helixlabs.pro serves
- * the lite build, which makes it the front door and the canonical page, while
- * this build sits on a vercel.app address and names it as its canonical. The
- * two constants are kept apart all the same, so that moving either edition to
- * a domain of its own stays a one-line change.
+ * Every link off this page now lives in lib/links.ts — the lite edition, the
+ * LMS, sign-in and checkout — so that one file knows about the other two
+ * deployments and this one knows only words. What used to be here was a
+ * holding-page link, kept deliberately while the old sign-up handed anybody
+ * an account for nothing; the LMS gates the labs behind a paid entitlement
+ * now, so the buttons go at the real thing.
  */
-export const LITE_URL = process.env.NEXT_PUBLIC_LITE_URL ?? 'https://www.helixlabs.pro';
-
-/** Across to the lite edition, tagged with where the visitor left from. */
-export function liteHref(source: string) {
-  return `${LITE_URL}/?from=${encodeURIComponent(`full:${source}`)}`;
-}
-
-/**
- * Where every call to action goes.
- *
- * This is deliberately a page of our own and nothing else. The old build's
- * sign-up at app.helixlabs.pro is open: anyone can make an account with any
- * password and walk straight into the labs, because nothing behind it checks
- * for a subscription. Until the new build has its own sign-up with a paid
- * entitlement, no button here may hand a visitor an account. There is no
- * environment override on purpose, so a stale variable cannot quietly point
- * these buttons back at the old sign-up.
- */
-const ENTRY = '/early-access';
-
-/** Entry link tagged with where on the page it was clicked (for funnel analysis). */
-export function signUpHref(source: string, extra?: Record<string, string>) {
-  const q = new URLSearchParams({ from: `landing:${source}`, ...extra });
-  return `${ENTRY}?${q}`;
-}
 
 export const HERO = {
   wordmark: 'HELIX LABS',
