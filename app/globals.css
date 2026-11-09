@@ -2314,15 +2314,22 @@ html:is([data-mode='cinematic'], [data-mode='mobile'], [data-mode='calm']) .flat
   gap: clamp(16px, 2.4vw, 28px);
   flex-wrap: wrap;
 }
+/* Razorpay's plate is a dark rectangle with squared corners, and dropped
+   straight onto a dark panel it reads as a hole cut in the page. It sits in
+   a frame of its own — a hairline, a lighter ground, a little air — so it
+   reads as a mark that has been placed rather than a gap. */
 .trust__badge {
   flex: none;
   display: block;
   line-height: 0;
-  opacity: 0.95;
-  transition: opacity 0.2s ease;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  background: rgba(238, 242, 255, 0.07);
+  transition: border-color 0.3s ease, background 0.3s ease;
 }
 .trust__badge:hover {
-  opacity: 1;
+  border-color: var(--line-2);
+  background: rgba(238, 242, 255, 0.11);
 }
 .trust__badge img {
   display: block;
