@@ -1,5 +1,5 @@
 import { CREDITS, EARTH_FACTS, ENTITY_LINE, HERO, LABS, LEARN, SCHOOLS, SCIENCES } from '@/content/site';
-import { INCLUDED, PRICING, rupees } from '@/content/commerce';
+import { INCLUDED, PRICING, PRICING_TIERS, rupees } from '@/content/commerce';
 import { checkoutHref, labsHref, liteHref, schoolsHref, signInHref } from '@/lib/links';
 import { PaymentTrust } from '@/ui/PaymentTrust';
 import { ModeSwitcher } from './ModeSwitcher';
@@ -132,11 +132,12 @@ export function FlatLanding() {
 
         {/* ───────────────────────── pricing ─────────────────────────
             At the bottom, because this build's job is the story and the
-            story has to be told before a price means anything. The figure
+            story has to be told before a price means anything. Every figure
             comes from shared/plan.ts, which the LMS reads to decide what to
-            charge, so the number here and the number in the payment window
-            are the same number. The button goes to the LMS: sign in, then
-            pay, then the labs. */}
+            charge, so the numbers here and the number in the payment window
+            are the same numbers. The buttons go to the LMS: sign in, then
+            pay, then the labs — except the free one, which has nothing to
+            pay for and so goes straight to sign-in. */}
         <section id="pricing" className="flat-section flat-pricing" aria-labelledby="pricing-h">
           <p className="hud-label hud-label--gold">{PRICING.eyebrow}</p>
           <h2 id="pricing-h" className="display display--m">
@@ -144,18 +145,28 @@ export function FlatLanding() {
           </h2>
           <p className="flat-lede">{PRICING.lede}</p>
 
+          <div className="flat-tiers">
+            {PRICING_TIERS.map((t) => (
+              <article className={`flat-tier${t.featured ? ' flat-tier--pick' : ''}`} key={t.id}>
+                <p className="flat-tier__name">{t.name}</p>
+                <p className="flat-plan__price">
+                  <span className="flat-plan__cur">₹</span>
+                  {rupees(t.price)}
+                  <span className="flat-plan__per">{t.per}</span>
+                </p>
+                <p className="flat-plan__term">{t.term}</p>
+                <a
+                  className={`btn ${t.featured ? 'btn--primary' : ''} btn--lg`}
+                  href={t.id === 'free' ? signInHref(`pricing-${t.id}`) : checkoutHref(`pricing-${t.id}`, { plan: t.id })}
+                >
+                  {t.cta}
+                </a>
+              </article>
+            ))}
+          </div>
+
           <div className="flat-plan">
-            <div className="flat-plan__head">
-              <p className="flat-plan__price">
-                <span className="flat-plan__cur">₹</span>
-                {rupees(PRICING.price)}
-                <span className="flat-plan__per">{PRICING.per}</span>
-              </p>
-              <a className="btn btn--primary btn--lg" href={checkoutHref('pricing')}>
-                {PRICING.cta} — ₹{rupees(PRICING.price)}
-              </a>
-            </div>
-            <p className="flat-plan__term">{PRICING.term}</p>
+            <p className="flat-tier__name">Both paid tiers include</p>
             <ul className="flat-plan__included">
               {INCLUDED.map((f) => (
                 <li key={f}>{f}</li>
@@ -166,8 +177,8 @@ export function FlatLanding() {
           <PaymentTrust className="flat-trust" />
 
           <p className="flat-plan__note">
-            {PRICING.note} <a href={liteHref('pricing-detail')}>{PRICING.secondary}</a> · Already have an account?{' '}
-            <a href={signInHref('pricing')}>Sign in</a>
+            {PRICING.note} {PRICING.rise} <a href={liteHref('pricing-detail')}>{PRICING.secondary}</a> · Already have an
+            account? <a href={signInHref('pricing')}>Sign in</a>
           </p>
         </section>
 

@@ -1,4 +1,4 @@
-import { DAYS, RUPEES } from '@/shared/plan';
+import { ANNUAL_PLAN, FREE_PLAN, MONTHLY_PLAN, PLANS as TIERS, PRICE_NOTICE, type PlanId, rupeesOf } from '@/shared/plan';
 
 /**
  * What the journey says about buying Helix Labs.
@@ -9,7 +9,7 @@ import { DAYS, RUPEES } from '@/shared/plan';
  * exists so that somebody who has just been flown from the Big Bang to a
  * pale blue dot is not then made to go and look for the price.
  *
- * Nothing here states a figure as a literal. The price comes from
+ * Nothing here states a figure as a literal. The prices come from
  * shared/plan.ts — the same file the LMS reads to decide what to charge — so
  * this page and the payment window cannot disagree. `npm run check:plan`
  * proves it against the live gateway.
@@ -18,24 +18,60 @@ import { DAYS, RUPEES } from '@/shared/plan';
 export const SUPPORT_EMAIL = 'hello@helixlabs.pro';
 
 /** ₹1,299 rather than ₹1299 — a price is read, not parsed. */
-export const rupees = (n: number = RUPEES) => n.toLocaleString('en-IN');
+export const rupees = (n: number) => n.toLocaleString('en-IN');
 
 export const PRICING = {
-  eyebrow: 'One subscription',
-  title: 'Six labs. Everything unlocked.',
-  lede: 'The journey you have just taken is the first hour. The labs are where you take the rules apart yourself — and there is one price for all of them.',
-  price: RUPEES,
-  per: 'per month',
-  term: `One payment, ${DAYS} days of access. Nothing renews on its own, so there is nothing to cancel — pay again when you want another month.`,
-  /* The price is appended by whoever renders this, from `price` above, so
-     that the figure in the button label can never be a stale literal. */
+  eyebrow: 'Three ways in',
+  title: 'Six labs. One of them free.',
+  lede: 'The journey you have just taken is the first hour. The labs are where you take the rules apart yourself — starting with one physics lab that costs nothing at all.',
+  /* The price is appended by whoever renders this, from the tiers below, so
+     that the figure in a button label can never be a stale literal. */
   cta: 'Start now',
   secondary: 'Full pricing and FAQ',
-  note: 'The price is in Indian rupees and includes GST. No setup fee, nothing added at checkout, and no card kept on file afterwards.',
+  note: 'Prices are in Indian rupees and include GST. No setup fee, nothing added at checkout, and no card kept on file afterwards.',
+  rise: PRICE_NOTICE,
 } as const;
 
+export interface Tier {
+  id: PlanId;
+  name: string;
+  /** rupees, inclusive of GST. 0 is the free tier, which has no checkout. */
+  price: number;
+  per: string;
+  term: string;
+  cta: string;
+  featured: boolean;
+}
+
 /**
- * What the subscription includes.
+ * The three tiers, read from the shared file in the order it lists them.
+ *
+ * Only the words are written here — every figure and every term comes across
+ * from shared/plan.ts, so a price change in one repository cannot leave this
+ * page advertising last month's.
+ */
+export const TIER_COPY: Record<PlanId, { cta: string; featured: boolean }> = {
+  free: { cta: 'Start free', featured: false },
+  monthly: { cta: 'Take a month', featured: true },
+  annual: { cta: 'Take the year', featured: false },
+};
+
+export const PRICING_TIERS: Tier[] = TIERS.map((p) => ({
+  id: p.id,
+  name: p.name,
+  price: rupeesOf(p),
+  per: p.per,
+  term: p.term,
+  ...TIER_COPY[p.id],
+}));
+
+/** For the one place a single headline figure is wanted. */
+export const MONTHLY_PRICE = rupeesOf(MONTHLY_PLAN);
+export const ANNUAL_PRICE = rupeesOf(ANNUAL_PLAN);
+export const FREE_TERM = FREE_PLAN.term;
+
+/**
+ * What a paid tier includes.
  *
  * The same six lines the lite edition shows, because they describe the same
  * product and a visitor may well read both pages before deciding.
